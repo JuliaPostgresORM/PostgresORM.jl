@@ -1,0 +1,10 @@
+function get_schemas end
+function get_tables end
+function get_table_oid end
+function get_pks end
+function get_fks end
+function get_columns_types end
+function analyse_db_schema end
+function check_if_table_is_partition_of_another_table end
+function check_if_table_or_partition_exists end
+function get_custom_types end

@@ -5,19 +5,7 @@ module PostgresORM
          retrieve_entity, retrieve_one_entity,
          update_entity!, update_vector_property!
 
-  export IEntity, IAppUser, Modification
-
-  using Dates, UUIDs
-
   function get_orm end
-
-  include("./enums/CRUDType.jl")
-
-  # Add the types used by the package
-  # NOTE: We make it available at the root of the module because they are used
-  #         by the calling libraries
-  include("./model/abstract_types.jl")
-  include("./model/Modification.jl")
 
   # This is a failed attempt to put the API in the module.
   # It works, but despite Revise, the web server does not take into account the
@@ -52,11 +40,26 @@ module PostgresORM
                                                  #   implementation.
   end #module SchemaInfo
 
+  module Model
 
+      using Dates, UUIDs
+      using ..PostgresORM
+
+      module Enums
+        include("./model/Enums.jl")
+      end
+
+      export IEntity, IAppUser, Modification
+      include("./model/abstract_types.jl")
+      include("./model/Modification.jl")
+
+  end # module Model
 
   module Controller
-
-    using ..CRUDType, ..PostgresORM
+    using ..PostgresORM
+    using ..Model
+    using ..Model.Enums
+    using ..Model.Enums.CRUDType
     using ..PostgresORMUtil
     # using .ModificationORM # no need (because ModificationORM is a children module ?)
     using Tables, DataFrames, Query, LibPQ, Dates, UUIDs, TickTock, TimeZones,
@@ -74,18 +77,20 @@ module PostgresORM
            util_overwrite_props!, util_get_column_type, util_getdbname,
            util_getdbhost, util_is_column_numeric
 
-    include("./Controller/coreORM.utils.part1.jl")
-    include("./Controller/coreORM.create.jl")
-    include("./Controller/coreORM.retrieve.jl")
-    include("./Controller/coreORM.update.jl")
-    include("./Controller/coreORM.delete.jl")
-    include("./Controller/coreORM.utils.part2.jl")
+    include("./controller/CoreORM.utils.part1.jl")
+    include("./controller/CoreORM.create.jl")
+    include("./controller/CoreORM.retrieve.jl")
+    include("./controller/CoreORM.update.jl")
+    include("./controller/CoreORM.delete.jl")
+    include("./controller/CoreORM.utils.part2.jl")
 
     module ModificationORM
       using ..PostgresORM
       using ..PostgresORMUtil
+      using ..Model
       using ..Controller
-      include("./Controller/ModificationORM.jl")
+      export create_modification, retrieve_modification, update_modification
+      include("./controller/ModificationORM.jl")
     end
 
   end # module Controller
@@ -94,7 +99,9 @@ module PostgresORM
     using LibPQ, StringCases
     using ..PostgresORM
     using ..Controller
-    using ..CRUDType
+    using ..Model
+    using ..Model.Enums
+    using ..Model.Enums.CRUDType
     using ..PostgresORMUtil, ..SchemaInfo
     # using .ModificationORM # no need (because ModificationORM is a children module ?)
     using Tables, DataFrames, Query, LibPQ, Dates, UUIDs, TickTock
@@ -108,4 +115,4 @@ module PostgresORM
   #
   # include("./exposed-functions-from-submodules.jl")
 
-end # ENDIF module PostgresORM
+end # module PostgresORM
