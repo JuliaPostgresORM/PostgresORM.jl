@@ -1,3 +1,5 @@
+import Pkg;
+Pkg.add("Documenter")
 using Documenter, PostgresORM
 
 makedocs(sitename="PostgresORM documentation",
