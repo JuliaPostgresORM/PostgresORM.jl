@@ -7,4 +7,4 @@ makedocs(sitename="PostgresORM documentation",
                 pages=[
                        "Home" => "index.md"
                       ])
-deploydocs(;repo="github.com/JuliaPostgresORM/PostgresORM.jl",)
+deploydocs(;repo="github.com/JuliaPostgresORM/PostgresORM.jl.git",)
