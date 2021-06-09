@@ -5,7 +5,6 @@ using Revise
 
 using Test
 using Random
-using RDatasets
 using Query
 
 using PostgresORM.PostgresORMUtil
