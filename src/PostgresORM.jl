@@ -2,7 +2,7 @@ module PostgresORM
 
   export greet, get_orm, create_entity!, create_in_bulk_using_copy,
          delete_entity, delete_entity_alike,
-         retrieve_entity, retrieve_one_entity,
+         retrieve_entity,
          update_entity!, update_vector_property!
 
   export IEntity, IAppUser, Modification
@@ -63,17 +63,6 @@ module PostgresORM
           JSON
     using IterTools:imap
 
-    export create_entity!, retrieve_entity, retrieve_one_entity, update_entity!,
-           delete_entity, delete_entity_alike, create_in_bulk_using_copy,
-           util_diff_entities, util_remove_trackchanges_properties_from_dict,
-           util_get_entity_props_for_comparison, util_compare_and_sync_entities,
-           update_vector_property!, createsomething,
-           execute_query_and_handle_result, execute_plain_query,
-           util_dict2entity, util_replace_complex_types_by_id,
-           util_replace_dict_types, util_replace_enums_by_id,
-           util_overwrite_props!, util_get_column_type, util_getdbname,
-           util_getdbhost, util_is_column_numeric
-
     include("./Controller/coreORM.utils.part1.jl")
     include("./Controller/coreORM.create.jl")
     include("./Controller/coreORM.retrieve.jl")
@@ -105,7 +94,7 @@ module PostgresORM
   # Implementation of the SchemaInfo module
   include("./schema-info/SchemaInfo-imp.jl")
 
-  #
-  # include("./exposed-functions-from-submodules.jl")
+
+  include("./exposed-functions-from-submodules.jl")
 
 end # ENDIF module PostgresORM

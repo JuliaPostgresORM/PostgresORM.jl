@@ -489,7 +489,7 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
       else
          f[:field_type]
       end
-      str = "  $field_name::Union{Nothing,Missing,$field_type}\n"
+      str = "  $field_name::Union{Missing,$field_type}\n"
       _struct[:struct_content] *= str
    end
 

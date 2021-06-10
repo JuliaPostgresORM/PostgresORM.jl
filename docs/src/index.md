@@ -3,3 +3,14 @@
 Welcome to the PostgresORM.jl documentation!
 
 This resource aims to teach you everything you need to know to get up and running with Object Relational Mapping between a Julia project and a PostgreSQL database  using PostgresORM.jl package.
+
+
+
+```@contents
+Depth = 2
+Pages = ["getting-started.md",
+         "modules/PostgresORM.md",
+         "modules/PostgresORM.Controller.md",
+         "modules/PostgresORM.PostgresORMUtil.md",
+         ]
+```
