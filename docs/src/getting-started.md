@@ -65,8 +65,8 @@ In this documentation we call
   * A '_complex property_', a property of type `IEntity`. It is also named
   a "manyToOne" property and it resolves to a foreign key in the table of the
   _class_.
-  * A '_property of IEntities_', a property of type
-  `Vector{T} where T <: IEntity`.  It is also named a "oneToMany" property and
+  * A '_property of IEntities_', a property of type 
+`Vector{T} where T <: IEntity`.  It is also named a "oneToMany" property and
   it is the counter part of a _complex property_ in another _class_.
 
 
