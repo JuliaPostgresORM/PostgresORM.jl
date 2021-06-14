@@ -1,8 +1,10 @@
+include("runtests-prerequisite.jl")
+
 module Test_util_prettify_id_values_as_str
 
     using PostgresORM
 
-    mutable struct MyMovie <: PostgresORM.Model.IEntity
+    mutable struct MyMovie <: PostgresORM.IEntity
 
       title::Union{Missing,String}
       year::Union{Missing,Int32}
@@ -20,7 +22,7 @@ module Test_util_prettify_id_values_as_str
                 )
     end
 
-    mutable struct MyNewStruct <: PostgresORM.Model.IEntity
+    mutable struct MyNewStruct <: PostgresORM.IEntity
 
       actor_id::Union{Missing,Int32}
       first_name::Union{Missing,String}
@@ -81,7 +83,7 @@ module MyMovieORM
 end
 
 
-@testset "Test `util_prettify_id_values_as_str(values::Vector{<:Any})`"
+@testset "Test `util_prettify_id_values_as_str(values::Vector{<:Any})`" begin
 
     mymovie =
         Test_util_prettify_id_values_as_str.MyMovie(title = "movie1",
@@ -93,6 +95,6 @@ end
                                                              favorite_movie = mymovie)
 
     PostgresORM.Controller.util_prettify_id_values_as_str(object)
-    
+
 
 end

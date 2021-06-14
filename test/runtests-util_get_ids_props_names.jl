@@ -1,5 +1,6 @@
+include("runtests-prerequisite.jl")
 
-mutable struct MyNewStruct <: PostgresORM.Model.IEntity
+mutable struct MyNewStruct <: PostgresORM.IEntity
 
   actor_id::Union{Missing,Int32}
   first_name::Union{Missing,String}

@@ -1,8 +1,10 @@
+include("runtests-prerequisite.jl")
+
 module Test_util_get_ids_cols_names
 
     using PostgresORM
 
-    mutable struct MySuperMovie <: PostgresORM.Model.IEntity
+    mutable struct MySuperMovie <: PostgresORM.IEntity
 
       title::Union{Missing,String}
       year::Union{Missing,Int32}
@@ -17,7 +19,7 @@ module Test_util_get_ids_cols_names
                 )
     end
 
-    mutable struct MyNewStruct <: PostgresORM.Model.IEntity
+    mutable struct MyNewStruct <: PostgresORM.IEntity
 
       actor_id::Union{Missing,Int32}
       first_name::Union{Missing,String}

@@ -1,13 +1,4 @@
-using Pkg
-Pkg.activate(".")
-
-using Revise
-
-using Test
-using Random
-using Query
-
-using PostgresORM.PostgresORMUtil
+include("runtests-prerequisite.jl")
 
 
 @testset "Test utils.jl - function `string2enum()`" begin
@@ -23,12 +14,12 @@ end
 
 @testset "Test utils.jl - function `dict2vectoroftuples()`" begin
     props = Dict(:a => 1, :b => missing, :c => "de", "d" => 9)
-    dict2vectoroftuples(props)
+    PostgresORMUtil.dict2vectoroftuples(props)
 end
 
 @testset "Test utils.jl - function `vectoroftuples2dict()`" begin
     vectoroftuples = [(:a, 1),(:b, missing),(:c, "de"),("d", 9)]
-    vectoroftuples2dict(vectoroftuples)
+    PostgresORMUtil.vectoroftuples2dict(vectoroftuples)
 end
 
 @testset "Test utils.jl - function `dictstringkeys2symbol()`" begin
@@ -68,7 +59,9 @@ end
 
 @testset "Test utils.jl - function `dataframe2vector_of_namedtuples()`" begin
 
-    df = head(dataset("datasets","iris"))
+    df = DataFrame(SepalLength = [5.1,3],
+                    SepalWidth = [3.5,4],
+                    Species = ["setosa","versicolor"])
 
     df = @from i in df begin
          @select {i.SepalLength,i.SepalWidth,i.Species}
@@ -99,7 +92,6 @@ end
 
 @testset "Test utils.jl - function `string2zoneddatetime`" begin
     PostgresORMUtil.string2zoneddatetime("2019-09-03T11:00:00.000Z")
-
 end
 
 @testset "Test utils.jl - function `postgresql_string_array_2_string_vector`" begin
@@ -115,17 +107,17 @@ end
     res = PostgresORMUtil.postgresql_string_array_2_string_vector(str)
     @test res == ["aa","bb","cc","dd"]
 
+    # This one fails
     str = "{\"bla bla\",bb,cc}"
     res = PostgresORMUtil.postgresql_string_array_2_string_vector(str)
     @test res == ["bla bla","bb","cc"]
 
-occursin("\"","\"rfr")
 end
 
 
 @testset "Test utils.jl - function `getpropertiesvalues`" begin
 
-    mutable struct MyNewStruct <: PostgresORM.Model.IEntity
+    mutable struct MyNewStruct <: PostgresORM.IEntity
 
       actor_id::Union{Missing,Int32}
       first_name::Union{Missing,String}
@@ -151,7 +143,7 @@ end
 
 @testset "Test utils.jl - function `setpropertiesvalues`" begin
 
-    mutable struct MyNewStruct <: PostgresORM.Model.IEntity
+    mutable struct MyNewStruct <: PostgresORM.IEntity
 
       actor_id::Union{Missing,Int32}
       first_name::Union{Missing,String}

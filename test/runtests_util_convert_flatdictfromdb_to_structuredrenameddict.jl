@@ -1,4 +1,6 @@
-mutable struct MyMovie <: PostgresORM.Model.IEntity
+include("runtests-prerequisite.jl")
+
+mutable struct MyMovie <: PostgresORM.IEntity
 
   title::Union{Missing,String}
   year::Union{Missing,Int32}
@@ -14,14 +16,14 @@ mutable struct MyMovie <: PostgresORM.Model.IEntity
 end
 
 
-mutable struct MyNewStruct <: PostgresORM.Model.IEntity
+mutable struct MyGreatStruct <: PostgresORM.IEntity
 
   id::Union{Missing,Int32}
   first_name::Union{Missing,String}
   favorite_movie::Union{Missing, MyMovie}
 
-  MyNewStruct(args::NamedTuple) = MyNewStruct(;args...)
-  MyNewStruct(;
+  MyGreatStruct(args::NamedTuple) = MyGreatStruct(;args...)
+  MyGreatStruct(;
         id = missing,
         first_name = missing,
         favorite_movie = missing,
@@ -35,9 +37,9 @@ mutable struct MyNewStruct <: PostgresORM.Model.IEntity
 
 end
 
-module MyNewStructORM
-    data_type = Main.MyNewStruct
-    Main.PostgresORM.get_orm(x::Main.MyNewStruct) = return(MyNewStructORM)
+module MyGreatStructORM
+    data_type = Main.MyGreatStruct
+    Main.PostgresORM.get_orm(x::Main.MyGreatStruct) = return(MyGreatStructORM)
     get_table_name() = "public.my_new_struct"
     const columns_selection_and_mapping =
       Dict(
@@ -81,7 +83,7 @@ end
                     :favorite_movie_title => "The Godfather",
                     :favorite_movie_year => 1972)
 
-                  
+
     PostgresORM.Controller.util_convert_flatdictfromdb_to_structuredrenameddict(flatdict,
-                                                         MyNewStruct)
+                                                         MyGreatStruct)
 end

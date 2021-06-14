@@ -1,13 +1,15 @@
-abstract type IMyNewStruct <: PostgresORM.Model.IEntity end
-abstract type IMyMovie <: PostgresORM.Model.IEntity end
+include("runtests-prerequisite.jl")
 
-mutable struct MyMovie <: IMyMovie
+abstract type IMyFantasticStruct <: PostgresORM.IEntity end
+abstract type IMyGreatMovie <: PostgresORM.IEntity end
+
+mutable struct MyGreatMovie <: IMyGreatMovie
 
   title::Union{Missing,String}
   year::Union{Missing,Int32}
 
-  MyMovie(args::NamedTuple) = MyMovie(;args...)
-  MyMovie(;title = missing,
+  MyGreatMovie(args::NamedTuple) = MyGreatMovie(;args...)
+  MyGreatMovie(;title = missing,
            year = missing,) = (
             x = new(missing, missing);
             x.title = title;
@@ -16,14 +18,14 @@ mutable struct MyMovie <: IMyMovie
             )
 end
 
-mutable struct MyNewStruct <: IMyNewStruct
+mutable struct MyFantasticStruct <: IMyFantasticStruct
 
   id::Union{Missing,Int32}
   first_name::Union{Missing,String}
-  favorite_movie::Union{Missing, IMyMovie}
+  favorite_movie::Union{Missing, IMyGreatMovie}
 
-  MyNewStruct(args::NamedTuple) = MyNewStruct(;args...)
-  MyNewStruct(;
+  MyFantasticStruct(args::NamedTuple) = MyFantasticStruct(;args...)
+  MyFantasticStruct(;
         id = missing,
         first_name = missing,
         favorite_movie = missing,
@@ -37,9 +39,9 @@ mutable struct MyNewStruct <: IMyNewStruct
 
 end
 
-module MyNewStructORM
-    data_type = Main.MyNewStruct
-    Main.PostgresORM.get_orm(x::Main.MyNewStruct) = return(MyNewStructORM)
+module MyFantasticStructORM
+    data_type = Main.MyFantasticStruct
+    Main.PostgresORM.get_orm(x::Main.MyFantasticStruct) = return(MyFantasticStructORM)
     get_table_name() = "public.my_new_struct"
     const columns_selection_and_mapping =
       Dict(
@@ -52,13 +54,13 @@ module MyNewStructORM
 
     # A dictionnary of mapping between fields symbols and overriding types
     #   Left hanside is the field symbol ; right hand side is the type override
-    const types_override = Dict(:favorite_movie => Main.MyMovie)
+    const types_override = Dict(:favorite_movie => Main.MyGreatMovie)
 
     const track_changes = false
 end
 
 
 @testset "Test `util_get_property_real_type`" begin
-  @test PostgresORM.Controller.util_get_property_real_type(MyNewStruct, :favorite_movie) == Main.MyMovie
-  @test PostgresORM.Controller.util_get_property_real_type(MyNewStruct, :first_name) == String
+  @test PostgresORM.Controller.util_get_property_real_type(MyFantasticStruct, :favorite_movie) == Main.MyGreatMovie
+  @test PostgresORM.Controller.util_get_property_real_type(MyFantasticStruct, :first_name) == String
 end
