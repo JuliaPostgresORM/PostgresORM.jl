@@ -9,6 +9,7 @@ end
 @testset "Test utils.jl - function `int2enum()`" begin
     @enum Fruit apple=10 orange=20 kiwi=30
     @test int2enum(Fruit, 20) == orange
+    @test int2enum(Fruit, 10) == apple
 end
 
 
