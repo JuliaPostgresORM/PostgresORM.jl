@@ -9,4 +9,6 @@ PostgresORM.update_entity!
 PostgresORM.update_vector_property!
 PostgresORM.delete_entity
 PostgresORM.delete_entity_alike
+PostgresORM.execute_plain_query
+PostgresORM.execute_query_and_handle_result
 ```
