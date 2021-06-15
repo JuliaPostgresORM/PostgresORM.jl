@@ -9,8 +9,6 @@ This resource aims to teach you everything you need to know to get up and runnin
 ```@contents
 Depth = 2
 Pages = ["getting-started.md",
-         "modules/PostgresORM.md",
-         "modules/PostgresORM.Controller.md",
-         "modules/PostgresORM.PostgresORMUtil.md",
+         "modules/PostgresORM.md",         
          ]
 ```

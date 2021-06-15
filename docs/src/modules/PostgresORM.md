@@ -1,6 +1,12 @@
 # Module PostgresORM
 
 ```@docs
-PostgresORM.retrieve_one_entity
+PostgresORM.create_entity!
+PostgresORM.create_in_bulk_using_copy
 PostgresORM.retrieve_entity
+PostgresORM.retrieve_one_entity
+PostgresORM.update_entity!
+PostgresORM.update_vector_property!
+PostgresORM.delete_entity
+PostgresORM.delete_entity_alike
 ```

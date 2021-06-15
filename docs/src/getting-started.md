@@ -2,14 +2,15 @@
 
 ## Pre-requisites
 ### Install LibPQ.jl
-`MyProject> add LibPQ`
+`(MyProject) pkg> add LibPQ`
 
 ### Install PostgresORM.jl
-`MyProject> add https://github.com/JuliaPostgresORM/PostgresORM.jl`
+`(MyProject) pkg> add PostgresORM`
 
 ## Example projects
 You can look at the following projects to see how PostgresORM is used :
   * [IMDBTestApp.jl](https://github.com/JuliaPostgresORM/IMDBTestApp.jl)
+
 
 ## Concepts
 
@@ -142,6 +143,60 @@ Julia enums are the counterpart of PostgreSQL custom enumeration types.
 ### LibPQ connection
 Many PostgresORM functions expects a `LibPQ.Connection` as one of the arguments.
 The developer is in charge of managing the connections and the transactions.
+
+## Design choices
+
+### Retrieval of _complex properties_
+Methods `retrieve_entity` and `retrieve_one_entity` expects the argument
+`retrieve_complex_props` to tell them if they need to make additional queries
+to retrieve the properties of the _complex properties_.
+If `retrieve_complex_props == false` then the properties of a _complex_property_
+will be set to missing except the properties used as IDs.
+
+### Retrieval of _properties of IEntities_
+Reminder, methods `retrieve_entity` and `retrieve_one_entity` expects the argument
+`retrieve_complex_props` to tell them if they need to make additional queries
+to retrieve the properties of the  _complex properties_. There is no such thing
+for _properties of IEntities_, PostgresORM never loads them (the properties of
+will be equal to missing). It is up to the package user to enrich the instance
+if he wants to.
+
+### Update of a _properties of IEntities_
+`update_entity` does not update properties of type vector of IEntities.
+If the user wants to update a property of type vector of IEntities, he needs to
+use `update_vector_property!`.
+
+### Beware! missing has two meanings
+A property with value missing can mean that:
+  * the value is missing for this entity
+  * the value has not been loaded yet
+
+We could have make use of `Nothing` for the second case but we decided not to
+because the benefit was too small compare to the complexity it was adding.
+Nevertheless, the developer must be well aware of this when updating an instance.
+Here are two code snippets to show what is the risk:
+
+```
+  # Load the film with retrieve_complex_props set to true
+  film = retrieve_one_entity(Film(codeName = "cube"),
+                             true, # retrieve the complex props
+                             dbconn)
+  @test ismissing(film.director.id) # false
+  @test ismissing(film.director.birthDate) # false
+  update_entity(film.director, dbconn) # This is OK
+
+
+  # Load the film with retrieve_complex_props set to false
+  film = retrieve_one_entity(Film(codeName = "cube"),
+                             false, # do not retrieve the complex props
+                             dbconn)
+  @test ismissing(film.director.id) # false
+  @test ismissing(film.director.birthDate) # true
+  update_entity(film.director, dbconn) # This is NOT OK! the director will loose
+                                       #   its birthDate
+
+
+```
 
 ## Reverse engineer the database
 The easiest way to get started is to ask PostgresORM to generate the _classes_,

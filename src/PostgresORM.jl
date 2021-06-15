@@ -1,9 +1,8 @@
 module PostgresORM
 
   export greet, get_orm, create_entity!, create_in_bulk_using_copy,
-         delete_entity, delete_entity_alike,
-         retrieve_entity,
-         update_entity!, update_vector_property!
+         delete_entity, delete_entity_alike, retrieve_entity, update_entity!,
+         update_vector_property!, execute_plain_query
 
   export IEntity, IAppUser, Modification
 

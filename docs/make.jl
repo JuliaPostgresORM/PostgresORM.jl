@@ -1,5 +1,5 @@
 import Pkg;
-Pkg.add("Documenter")
+#Pkg.add("Documenter")
 using Documenter, PostgresORM
 
 makedocs(
@@ -9,7 +9,8 @@ makedocs(
                  "Getting started" => "getting-started.md",
                  "Modules" => [
                         "modules/PostgresORM.md",
-                        "modules/PostgresORM.Controller.md"]
+                        # "modules/PostgresORM.Controller.md"
+                        ]
                  ],
 )
 deploydocs(; repo = "github.com/JuliaPostgresORM/PostgresORM.jl.git",
