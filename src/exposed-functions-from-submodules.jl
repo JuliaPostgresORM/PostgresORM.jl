@@ -23,7 +23,7 @@ function create_entity!(new_object::IEntity,
 end
 
 """
-    function create_in_bulk_using_copy(entities::Vector{T},
+    create_in_bulk_using_copy(entities::Vector{T},
                                        dbconn::LibPQ.Connection) where T <: IEntity
 
 Persists many instances to the database using PostgreSQL 'COPY'
@@ -159,9 +159,9 @@ function delete_entity_alike(filter_object::IEntity,
 end
 
 """
-      execute_plain_query(query_string::String,
-                          query_args::Union{Vector,Missing},
-                          dbconn::LibPQ.Connection)
+   execute_plain_query(query_string::String,
+                       query_args::Union{Vector,Missing},
+                       dbconn::LibPQ.Connection)
 
 Execute a query and with the given arguments returns a dataframe
 """
@@ -174,11 +174,11 @@ function execute_plain_query(query_string::String,
 end
 
 """
-      execute_query_and_handle_result(query_string::String,
-                                      data_type::DataType,
-                                      query_args::Union{Vector,Missing},
-                                      retrieve_complex_props::Bool,
-                                      dbconn::LibPQ.Connection)
+   execute_query_and_handle_result(query_string::String,
+                                   data_type::DataType,
+                                   query_args::Union{Vector,Missing},
+                                   retrieve_complex_props::Bool,
+                                   dbconn::LibPQ.Connection)
 
 Execute a query and with the given arguments and convert the rows to the given
 data_type in the same way that `retrieve_entity` would do it.
