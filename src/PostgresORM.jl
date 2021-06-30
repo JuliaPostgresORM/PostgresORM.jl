@@ -40,13 +40,25 @@ module PostgresORM
             setpropertiesvalues!, remove_spaces_and_split, diff_dict, string2enum,
             int2enum, enum2int, dictstringkeys2symbol, dictnothingvalues2missing,
             getproperties_asdict, string2zoneddatetime
-      include("./util/utils.jl")
+
+      # Implementations of 'pluralize' are kept in one module per language
+      module Pluralize
+        module ENG
+          include("./PostgresORMUtil/Pluralize/ENG.jl")
+        end
+        module FRA
+          include("./PostgresORMUtil/Pluralize/FRA.jl")
+        end
+      end
+
+      include("./PostgresORMUtil/pluralize.jl")
+      include("./PostgresORMUtil/utils.jl")
 
   end # module PostgresORMUtil
 
   # Provides functions to get information about the database structures
   module SchemaInfo
-      include("./schema-info/SchemaInfo-def.jl") # This is only the definition of the
+      include("./SchemaInfo/SchemaInfo-def.jl") # This is only the definition of the
                                                  #   module. See below for the actual
                                                  #   implementation.
   end #module SchemaInfo
@@ -86,12 +98,12 @@ module PostgresORM
     using ..PostgresORMUtil, ..SchemaInfo
     # using .ModificationORM # no need (because ModificationORM is a children module ?)
     using Tables, DataFrames, Query, LibPQ, Dates, UUIDs, TickTock
-    include("./tool/Tool.jl")
+    include("./Tool/Tool.jl")
 
   end # module Tool
 
   # Implementation of the SchemaInfo module
-  include("./schema-info/SchemaInfo-imp.jl")
+  include("./SchemaInfo/SchemaInfo-imp.jl")
 
 
   include("./exposed-functions-from-submodules.jl")

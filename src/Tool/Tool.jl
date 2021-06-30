@@ -47,15 +47,18 @@ function build_struct_abstract_name(str::String)
    return "I$(build_struct_name(str))"
 end
 
-function build_field_name(str::String
+function build_field_name(str::String,
+                          lang_code::String
                          ;replace_ids = false,
                           is_onetomany = false)
-   return build_field_name(tovector(str)
+   return build_field_name(tovector(str),
+                           lang_code::String
                           ;replace_ids = replace_ids,
                            is_onetomany = is_onetomany)
 end
 
-function build_field_name(str_arr::Vector{String}
+function build_field_name(str_arr::Vector{String},
+                          lang_code::String
                          ;replace_ids = false,
                           is_onetomany = false)
 
@@ -67,11 +70,7 @@ function build_field_name(str_arr::Vector{String}
     field_name = join(str_arr, '_')
     field_name = StringCases.camelize(field_name)
     if is_onetomany
-      if endswith(field_name,"y")
-         field_name = field_name[1:length(field_name)-1] * "ies"
-      else
-         field_name *= "s"
-      end
+      field_name = PostgresORMUtil.pluralize(field_name,lang_code)
     end
 
     return field_name
@@ -129,9 +128,11 @@ end
 
 function generate_julia_code(dbconn::LibPQ.Connection,
                              outdir::String
-                            ;module_name_for_all_schemas::Union{String,Missing} = "Model")
+                            ;lang_code = "eng",
+                             module_name_for_all_schemas::Union{String,Missing} = "Model")
    object_model =
       generate_object_model(dbconn,
+                            lang_code,
                             module_name_for_all_schemas = module_name_for_all_schemas)
    generate_structs_from_object_model(object_model, outdir)
    generate_orms_from_object_model(object_model, outdir)
@@ -140,7 +141,8 @@ function generate_julia_code(dbconn::LibPQ.Connection,
 end
 
 function generate_object_model(
-   dbconn::LibPQ.Connection
+   dbconn::LibPQ.Connection,
+   lang_code::String
   ;ignored_columns::Vector{String} = Vector{String}(),
    camelcase_is_default::Bool = true,
    exceptions_to_default::Vector{String} = Vector{String}(),
@@ -235,13 +237,16 @@ function generate_object_model(
                                  manytoone_field[:referenced_table],
                            n) |> length
             manytoone_field[:name] = if length(manytoone_field[:cols]) == 1
-                  build_field_name(manytoone_field[:cols]
+                  build_field_name(manytoone_field[:cols],
+                                   lang_code,
                                   ;replace_ids = true)
                else
                   if nb_fks_same_table_same_targeted_table == 1
-                     build_field_name(manytoone_field[:referenced_table][:table])
+                     build_field_name(manytoone_field[:referenced_table][:table],
+                                      lang_code)
                   else
-                     build_field_name(manytoone_field[:cols]
+                     build_field_name(manytoone_field[:cols],
+                                      lang_code
                                      ;replace_ids = true)
                   end
                end
@@ -299,7 +304,7 @@ function generate_object_model(
             id_field[:is_manytoone] = false
             id_field[:is_onetoone] = false
             id_field[:is_onetomany] = false
-            field_name = build_field_name(pkcol)
+            field_name = build_field_name(pkcol,lang_code)
             id_field[:name] = field_name
 
             field_type =
@@ -324,7 +329,7 @@ function generate_object_model(
             basic_field[:is_manytoone] = false
             basic_field[:is_onetoone] = false
             basic_field[:is_onetomany] = false
-            field_name = build_field_name(colname)
+            field_name = build_field_name(colname,lang_code)
             basic_field[:name] = field_name
 
             field_type =
@@ -382,7 +387,8 @@ function generate_object_model(
          else
             string(manytoone_field[:name],"_",manytoone_field[:struct][:table])
          end
-      onetomany_field_name = build_field_name(onetomany_field_name
+      onetomany_field_name = build_field_name(onetomany_field_name,
+                                              lang_code
                                              ;is_onetomany = true)
       onetomany_field_type =
         "Vector{$(manytoone_field[:struct][:module][:name]).$(manytoone_field[:struct][:name])}"
