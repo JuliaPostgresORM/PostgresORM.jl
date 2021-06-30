@@ -1,10 +1,14 @@
 module PostgresORM
 
-  export greet, get_orm, create_entity!, create_in_bulk_using_copy,
-         delete_entity, delete_entity_alike, retrieve_entity, update_entity!,
-         update_vector_property!, execute_plain_query
-
+  # Exposed types of PostgresORM
   export IEntity, IAppUser, Modification
+
+  # Exposed functions of PostgresORM
+  export get_orm, create_entity!,create_in_bulk_using_copy,retrieve_entity,
+         retrieve_one_entity,update_entity!,update_vector_property!,
+         delete_entity,delete_entity_alike,execute_plain_query,
+         execute_query_and_handle_result
+
 
   using Dates, UUIDs
 
