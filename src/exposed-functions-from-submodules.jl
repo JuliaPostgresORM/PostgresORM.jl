@@ -99,7 +99,7 @@ function update_entity!(updated_object::IEntity,
                        )
     Controller.update_entity!(updated_object,
                               dbconn;
-                              editor = dbconn
+                              editor = editor
                               )
 end
 
