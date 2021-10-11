@@ -89,7 +89,7 @@ function util_compare_and_sync_entities(previous_entities::Vector{<:IEntity},
     else
         data_type = typeof(new_entities[1])
     end
-    
+
     # ############################################################################## #
     # PART1. Identify the indexes of the entities for the different types of actions
     #   (i.e. remove the entity from the association, create and add an entity to
@@ -328,36 +328,34 @@ function update_entity!(updated_object::IEntity,
         return updated_object
     end
 
+    #
+    # Enrich the updated object with the creator and creation time if needed
+    #
+    editor_property = util_get_editor_property(orm_module)
+    if !ismissing(editor_property)
+
+        # Only set the editor property if it is empty because the rest of the
+        #  application may want to set it (eg. if importing data)
+        if ismissing(getproperty(updated_object,editor_property))
+
+            setproperty!(updated_object,
+                         editor_property,
+                         editor)
+        # If the object has the creator property set, use it
+        else
+            editor = getproperty(updated_object,editor_property)
+        end
+    end
+    update_time_property = util_get_update_time_property(orm_module)
+    if !ismissing(update_time_property)
+        setproperty!(updated_object,
+                     update_time_property,
+                     now(Dates.UTC))
+    end
+
     # Compare versions if needed, by retrieving the current state of the object
     #   in the database
     if util_get_track_changes(orm_module)
-
-         #
-         # Enrich the updated object
-         #
-         editor_property = util_get_editor_property(orm_module)
-         if !ismissing(editor_property)
-
-             # Only set the editor property if it is empty because the rest of the
-             #  application may want to set it (eg. if importing data)
-             if ismissing(getproperty(updated_object,editor_property))
-
-                 setproperty!(updated_object,
-                              editor_property,
-                              editor)
-             # If the object has the creator property set, use it
-             else
-                 editor = getproperty(updated_object,editor_property)
-             end
-
-
-         end
-         update_time_property = util_get_update_time_property(orm_module)
-         if !ismissing(update_time_property)
-             setproperty!(updated_object,
-                          update_time_property,
-                          now(Dates.UTC))
-         end
 
          #
          # Create the modification entries
@@ -388,7 +386,7 @@ function update_entity!(updated_object::IEntity,
              create_entity!(modif,dbconn)
          end
 
-     end # if track_changes
+     end # ENDOF if track_changes
 
     # Create the dictionnary of properties for insertion in the database
     props = util_get_entity_props_for_db_actions(updated_object,

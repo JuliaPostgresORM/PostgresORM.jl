@@ -13,39 +13,37 @@ function create_entity!(new_object::IEntity,
 
     query_string = "INSERT INTO " * table_name
 
+    #
+    # Enrich the created object with the creator and creation time if needed
+    #
+    creator_property = util_get_creator_property(orm_module)
+    if !ismissing(creator_property)
+         # Only set the creator property if it is empty because the rest of the
+         #  application may want to set it (eg. if importing data)
+         if ismissing(getproperty(new_object,creator_property))
+             setproperty!(new_object,
+                          creator_property,
+                          creator)
+         # If the object has the creator property set, use it
+         else
+             creator = getproperty(new_object,creator_property)
+         end
+    end
+
+    creation_time_property = util_get_creation_time_property(orm_module)
+    if !ismissing(creation_time_property)
+        # Only set the creation time if it is empty because the rest of the
+        #  application may want to set it (eg. if importing data)
+        if ismissing(getproperty(new_object, creation_time_property))
+            setproperty!(new_object,
+                         creation_time_property,
+                         now(Dates.UTC))
+        end
+    end
+
 
     # Record the state of the attributes in the modification table
     if util_get_track_changes(orm_module)
-
-         #
-         # Enrich the created object
-         #
-
-         creator_property = util_get_creator_property(orm_module)
-         if !ismissing(creator_property)
-              # Only set the creator property if it is empty because the rest of the
-              #  application may want to set it (eg. if importing data)
-              if ismissing(getproperty(new_object,creator_property))
-                  setproperty!(new_object,
-                               creator_property,
-                               creator)
-              # If the object has the creator property set, use it
-              else
-                  creator = getproperty(new_object,creator_property)
-              end
-
-         end
-
-         creation_time_property = util_get_creation_time_property(orm_module)
-         if !ismissing(creation_time_property)
-             # Only set the creation time if it is empty because the rest of the
-             #  application may want to set it (eg. if importing data)
-             if ismissing(getproperty(new_object, creation_time_property))
-                 setproperty!(new_object,
-                              creation_time_property,
-                              now(Dates.UTC))
-             end
-         end
 
          #
          # Create the modification entries
@@ -85,7 +83,7 @@ function create_entity!(new_object::IEntity,
 
          end
 
-    end # if track_changes
+    end # ENDOF if track_changes
 
     props = util_get_entity_props_for_db_actions(new_object,
                                                  dbconn,
