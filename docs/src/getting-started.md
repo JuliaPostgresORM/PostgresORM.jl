@@ -227,3 +227,67 @@ PostgresORM.Tool.generate_julia_code(dbconn,out_dir)
 
 close(dbconn)
 ```
+
+## How to record changes
+
+### Record the changes in the modified class itself
+You can ask PostgresORM to record the following information inside the class itself :
+  - the creator of an instance,
+  - the last editor of an instance,
+  - the creation time  of an instance,
+  - the last edition time  of an instance
+
+To do this you need to declare the following functions in the ORM of the class:
+```
+get_creator_property() = :your_creator_prop
+get_editor_property() = :your_lastEditor_prop
+get_creation_time_property() = :your_creationTime_prop
+get_update_time_property() = :your_updateTime_prop
+```
+
+NOTE: You can decide to only declare some of these functions
+
+### Record the changes in a 'modification' table
+
+You can also ask PostgresORM to record the details of the modifications of a class
+in a table.
+
+To do this you need:
+- Tell the ORM of the class that you want to record the changes
+- A table where to write those modifications
+
+#### Declare the following functions in the ORM of the class:
+```
+get_track_changes() = true
+```
+
+#### The `Modification` table
+
+PostgresORM ships a class `Modification` that inherits from `IEntity`.
+It also has the accompanying ORM mapping module `PostgresORM.ModificationORM`.
+By default, this class is serialized to a table `modification` in the schema `public`.
+
+Here is the SQL for the creation of the table if you want to use the default mapping of ModificationORM:
+
+```
+CREATE TABLE public.modification
+(
+    id uuid NOT NULL DEFAULT uuid_generate_v4(),
+    entity_type character varying COLLATE pg_catalog."default",
+    entity_id character varying COLLATE pg_catalog."default",
+    attrname character varying COLLATE pg_catalog."default",
+    oldvalue text COLLATE pg_catalog."default",
+    user_id character varying COLLATE pg_catalog."default",
+    newvalue text COLLATE pg_catalog."default",
+    action_id uuid,
+    action_type character varying(10) COLLATE pg_catalog."default",
+    creation_time timestamp without time zone,
+    CONSTRAINT modification_pkey PRIMARY KEY (id)
+)
+```
+
+Suppose the modification table is in a different schema, you can tell PostgresORM where it is by overwriting the functions of `PostgresORM.ModificationORM`.
+Eg.
+```
+PostgresORM.ModificationORM.get_schema_name() = "my_schema"
+```

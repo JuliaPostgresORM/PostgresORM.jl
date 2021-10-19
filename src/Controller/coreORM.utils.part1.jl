@@ -526,7 +526,7 @@ function util_dict2entity(props_dict::Dict{Symbol,T},
 
               # Check that the elements type is not abstract
               if isabstracttype(eltype(ptype))
-                  throw(DomainError("Cannot instantiate $ptype because it's a vector of abstract elements. "
+                  throw(DomainError("Cannot instantiate type[$ptype] of property[:$fsymbol] because it's a vector of abstract elements. "
                                   * " Please set a non-abstract vector in 'types_override'"
                                   * " in the ORM[$(PostgresORM.get_orm(dummy_object))]"))
               end
@@ -570,11 +570,11 @@ function util_get_property_real_type(datatype::DataType, propname::Symbol)
 
     # Check if there is a type override for this property, if not we
     #   use the property type
+
     if (isdefined(orm_module,:types_override)
         && propname in collect(keys(orm_module.types_override)))
         ptype = PostgresORM.get_orm(dummy_object).types_override[propname]
     end
-
     return ptype
 end
 

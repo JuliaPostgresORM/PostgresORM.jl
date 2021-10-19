@@ -1,7 +1,7 @@
 module PostgresORM
 
   # Exposed types of PostgresORM
-  export IEntity, IAppUser, Modification
+  export IEntity, IEntity, Modification
 
   # Exposed functions of PostgresORM
   export get_orm, create_entity!,create_in_bulk_using_copy,retrieve_entity,
@@ -21,6 +21,13 @@ module PostgresORM
   #         by the calling libraries
   include("./model/abstract_types.jl")
   include("./model/Modification.jl")
+
+  module ModificationORM
+    using ..PostgresORM
+    # using ..PostgresORMUtil
+    # using ..Controller
+    include("./ModificationORM.jl")
+  end
 
   # This is a failed attempt to put the API in the module.
   # It works, but despite Revise, the web server does not take into account the
@@ -85,12 +92,12 @@ module PostgresORM
     include("./Controller/coreORM.delete.jl")
     include("./Controller/coreORM.utils.part2.jl")
 
-    module ModificationORM
-      using ..PostgresORM
-      using ..PostgresORMUtil
-      using ..Controller
-      include("./Controller/ModificationORM.jl")
-    end
+    # module ModificationORM
+    #   using ..PostgresORM
+    #   using ..PostgresORMUtil
+    #   using ..Controller
+    #   include("./Controller/ModificationORM.jl")
+    # end
 
   end # module Controller
 

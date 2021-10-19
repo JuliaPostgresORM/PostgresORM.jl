@@ -2,7 +2,7 @@
 """
     create_entity!(new_object::IEntity,
                    dbconn::LibPQ.Connection;
-                   creator::Union{IAppUser,Missing} = missing)
+                   creator::Union{IEntity,Missing} = missing)
 
 Persists an instance to the database.
 Properties of type vector of IEntity are not persisted
@@ -15,7 +15,7 @@ modification table
 """
 function create_entity!(new_object::IEntity,
                        dbconn::LibPQ.Connection;
-                       creator::Union{IAppUser,Missing} = missing)
+                       creator::Union{IEntity,Missing} = missing)
 
    Controller.create_entity!(new_object,
                              dbconn;
@@ -82,7 +82,7 @@ end
 """
     update_entity!(updated_object::IEntity,
                    dbconn::LibPQ.Connection;
-                   editor::Union{IAppUser,Missing} = missing)
+                   editor::Union{IEntity,Missing} = missing)
 
 Updates an instance to the database.
 Properties of type vector of IEntity are not updated
@@ -95,7 +95,7 @@ modification table
 """
 function update_entity!(updated_object::IEntity,
                        dbconn::LibPQ.Connection;
-                       editor::Union{IAppUser,Missing} = missing
+                       editor::Union{IEntity,Missing} = missing
                        )
     Controller.update_entity!(updated_object,
                               dbconn;
@@ -107,7 +107,7 @@ end
     update_vector_property!(updated_object::IEntity,
                             updated_property::Symbol,
                             dbconn::Union{Missing, LibPQ.Connection};
-                            editor::Union{Missing, IAppUser} = missing)
+                            editor::Union{Missing, IEntity} = missing)
 
 Updates a property of type vector of IEntity
 
@@ -115,7 +115,7 @@ Updates a property of type vector of IEntity
 function update_vector_property!(updated_object::IEntity,
                                  updated_property::Symbol,
                                  dbconn::Union{Missing, LibPQ.Connection};
-                                 editor::Union{Missing, IAppUser} = missing)
+                                 editor::Union{Missing, IEntity} = missing)
 
       Controller.update_vector_property!(updated_object,
                                         updated_property,
@@ -127,13 +127,13 @@ end
 """
     delete_entity(deleted_object::IEntity,
                   dbconn::LibPQ.Connection;
-                  editor::Union{IAppUser,Missing} = missing)
+                  editor::Union{IEntity,Missing} = missing)
 
 Deletes an entity on the basis of its ID
 """
 function delete_entity(deleted_object::IEntity,
                        dbconn::LibPQ.Connection;
-                       editor::Union{IAppUser,Missing} = missing
+                       editor::Union{IEntity,Missing} = missing
                        )
     Controller.delete_entity(deleted_object,
                              dbconn;
@@ -144,13 +144,13 @@ end
 """
     delete_entity_alike(filter_object::IEntity,
                         dbconn::LibPQ.Connection;
-                        editor::Union{IAppUser,Missing} = missing)
+                        editor::Union{IEntity,Missing} = missing)
 
 Deletes all entities matching the the filter
 """
 function delete_entity_alike(filter_object::IEntity,
                        dbconn::LibPQ.Connection;
-                       editor::Union{IAppUser,Missing} = missing
+                       editor::Union{IEntity,Missing} = missing
                        )
     Controller.delete_entity_alike(filter_object,
                                    dbconn;
