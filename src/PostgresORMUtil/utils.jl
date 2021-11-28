@@ -137,6 +137,27 @@ function string2enum(enumType::DataType,str::String)
 
 end
 
+"""
+"""
+function string2vector_of_enums(vectorOfEnumsTypes::Type{Vector{T}},
+                                str::Union{String,Missing}) where T <: Base.Enums.Enum
+    enumType = eltype(vectorOfEnumsTypes)
+
+    if ismissing(str)
+        return missing
+    end
+
+    # If no element in the array return an empty array
+    if str == "{}"
+        return T[]
+    end
+
+    chop(str,head = 1,tail = 1) |> n -> split(n,",") |>
+        n -> string.(n) |>
+        n -> string2enum.(enumType,n)
+
+end
+
 function string2zoneddatetime(str)
     # eg. "2019-09-03T11:00:00.000Z"
     date_match_GMT =

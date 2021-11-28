@@ -76,11 +76,14 @@ function build_field_name(str_arr::Vector{String},
     return field_name
 end
 
-function get_fieldtype_from_coltype(coltype::String,elttype::String
+function get_fieldtype_from_coltype(coltype::String,
+                                    elttype::String,
+                                    customtypes::Dict,
                                     ;tablename::String = "",
                                      colname::String = "")
 
    attrtype = missing
+   customtypes_names = keys(customtypes) |> collect |> n -> string.(n)
 
    if (coltype == "character"
       || coltype == "character varying"
@@ -110,6 +113,9 @@ function get_fieldtype_from_coltype(coltype::String,elttype::String
    elseif (coltype == "ARRAY")
       if (elttype == "_text" || elttype == "_varchar")
         attrtype = "Vector{String}"
+      elseif elttype[2:end] in customtypes_names
+        elttype = elttype[2:end] # remove the leading underscore
+        attrtype = "Vector{$(build_enum_name_w_module(elttype))}"
       else
         error("Unknown array type[$elttype] for table[$tablename] column[$colname]")
       end
@@ -139,6 +145,7 @@ function generate_julia_code(dbconn::LibPQ.Connection,
    generate_enums_from_object_model(object_model, outdir)
 
 end
+
 
 function generate_object_model(
    dbconn::LibPQ.Connection,
@@ -222,6 +229,7 @@ function generate_object_model(
                manytoone_field[:is_manytoone] = true
             end
             manytoone_field[:is_onetomany] = false
+            manytoone_field[:is_enum] = false
 
             # Build a field name by one of the following options:
             # Case 1: The FK is composed of one column only. In this case we use
@@ -304,12 +312,19 @@ function generate_object_model(
             id_field[:is_manytoone] = false
             id_field[:is_onetoone] = false
             id_field[:is_onetomany] = false
+            id_field[:is_enum] = false
             field_name = build_field_name(pkcol,lang_code)
             id_field[:name] = field_name
 
             field_type =
                get_fieldtype_from_coltype(tabledef[:cols][pkcol][:type],
-                                          tabledef[:cols][pkcol][:elttype_if_array])
+                                          tabledef[:cols][pkcol][:elttype_if_array],
+                                          custom_types)
+
+            # Check if it is an enum
+            if tabledef[:cols][pkcol][:type] == "USER-DEFINED"
+                id_field[:is_enum] = true
+            end
 
             id_field[:field_type] = field_type
             push!(struct_id_fields, id_field)
@@ -329,13 +344,20 @@ function generate_object_model(
             basic_field[:is_manytoone] = false
             basic_field[:is_onetoone] = false
             basic_field[:is_onetomany] = false
+            basic_field[:is_enum] = false
             field_name = build_field_name(colname,lang_code)
             basic_field[:name] = field_name
 
             field_type =
                get_fieldtype_from_coltype(coldef[:type],
-                                          coldef[:elttype_if_array]
+                                          coldef[:elttype_if_array],
+                                          custom_types
                                           ;tablename = table, colname = colname)
+
+            # Check if it is an enum
+            if coldef[:type] == "USER-DEFINED"
+                basic_field[:is_enum] = true
+            end
 
             basic_field[:field_type] = field_type
             push!(struct_basic_fields, basic_field)
@@ -362,6 +384,7 @@ function generate_object_model(
       onetomany_field[:is_manytoone] = false
       onetomany_field[:is_onetoone] = false
       onetomany_field[:is_onetomany] = true
+      onetomany_field[:is_enum] = false
       onetomany_type_name_w_module = manytoone_field[:field_type] # Public.Staff
 
       # Build a field_name using one of the following options:
@@ -496,6 +519,11 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
          f[:field_type]
       end
       str = "  $field_name::Union{Missing,$field_type}\n"
+
+      if f[:name] == "policeOfficerRequests"
+        @info "$(f[:name]) -> $str"
+      end
+
       _struct[:struct_content] *= str
    end
 
