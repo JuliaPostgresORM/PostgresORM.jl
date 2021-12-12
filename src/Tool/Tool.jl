@@ -586,7 +586,7 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
    # ######################################################### #
    for _struct in structs
       str = ""
-      str *= "  ) = (\n"
+      str *= "  ) = begin\n"
       str *= "    x = new("
       _struct[:struct_content] *= str
    end
@@ -606,7 +606,7 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
    # Close 'new(missing, missing, ...)' of the second constructor #
    # ############################################################ #
    for _struct in structs
-      str = ");\n"
+      str = ")\n"
       _struct[:struct_content] *= str
    end
 
@@ -617,7 +617,7 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
 
       _struct = f[:struct]
 
-      str = "    x.$(f[:name]) = $(f[:name]);\n"
+      str = "    x.$(f[:name]) = $(f[:name])\n"
       _struct[:struct_content] *= str
    end
 
@@ -626,7 +626,7 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
    # ######################################################## #
    for _struct in structs
       str = "    return x\n"
-      str *= "  )\n"
+      str *= "  end\n"
       _struct[:struct_content] *= str
    end
 
