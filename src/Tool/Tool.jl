@@ -76,11 +76,34 @@ function build_field_name(str_arr::Vector{String},
     return field_name
 end
 
-function get_fieldtype_from_coltype(coltype::String,elttype::String
+function is_vector_of_enum(coltype::String,
+                            elttype::String,
+                            customtypes_names::Vector{String})
+    if (coltype == "ARRAY")
+        if elttype[2:end] in customtypes_names # remove the leading underscore
+            return true
+        end
+    end
+    return false
+end
+
+function is_vector_of_enum(coltype::String,
+                            elttype::String,
+                            customtypes::Dict)
+    customtypes_names = keys(customtypes) |> collect |> n -> string.(n)
+    return is_vector_of_enum(coltype,
+                              elttype,
+                              customtypes_names)
+end
+
+function get_fieldtype_from_coltype(coltype::String,
+                                    elttype::String,
+                                    customtypes::Dict,
                                     ;tablename::String = "",
                                      colname::String = "")
 
    attrtype = missing
+   customtypes_names = keys(customtypes) |> collect |> n -> string.(n)
 
    if (coltype == "character"
       || coltype == "character varying"
@@ -110,6 +133,13 @@ function get_fieldtype_from_coltype(coltype::String,elttype::String
    elseif (coltype == "ARRAY")
       if (elttype == "_text" || elttype == "_varchar")
         attrtype = "Vector{String}"
+      elseif (elttype == "_numeric")
+            attrtype = "Vector{Float64}"
+      elseif (elttype == "_int4")
+            attrtype = "Vector{Int64}"
+      elseif is_vector_of_enum(coltype,elttype,customtypes_names)
+        elttype = elttype[2:end] # remove the leading underscore
+        attrtype = "Vector{$(build_enum_name_w_module(elttype))}"
       else
         error("Unknown array type[$elttype] for table[$tablename] column[$colname]")
       end
@@ -139,6 +169,7 @@ function generate_julia_code(dbconn::LibPQ.Connection,
    generate_enums_from_object_model(object_model, outdir)
 
 end
+
 
 function generate_object_model(
    dbconn::LibPQ.Connection,
@@ -222,6 +253,8 @@ function generate_object_model(
                manytoone_field[:is_manytoone] = true
             end
             manytoone_field[:is_onetomany] = false
+            manytoone_field[:is_enum] = false
+            manytoone_field[:is_vectorofenum] = false
 
             # Build a field name by one of the following options:
             # Case 1: The FK is composed of one column only. In this case we use
@@ -304,12 +337,20 @@ function generate_object_model(
             id_field[:is_manytoone] = false
             id_field[:is_onetoone] = false
             id_field[:is_onetomany] = false
+            id_field[:is_enum] = false
+            id_field[:is_vectorofenum] = false
             field_name = build_field_name(pkcol,lang_code)
             id_field[:name] = field_name
 
             field_type =
                get_fieldtype_from_coltype(tabledef[:cols][pkcol][:type],
-                                          tabledef[:cols][pkcol][:elttype_if_array])
+                                          tabledef[:cols][pkcol][:elttype_if_array],
+                                          custom_types)
+
+            # Check if it is an enum
+            if tabledef[:cols][pkcol][:type] == "USER-DEFINED"
+                id_field[:is_enum] = true
+            end
 
             id_field[:field_type] = field_type
             push!(struct_id_fields, id_field)
@@ -329,13 +370,25 @@ function generate_object_model(
             basic_field[:is_manytoone] = false
             basic_field[:is_onetoone] = false
             basic_field[:is_onetomany] = false
+            basic_field[:is_enum] = false
+            basic_field[:is_vectorofenum] = false
             field_name = build_field_name(colname,lang_code)
             basic_field[:name] = field_name
 
             field_type =
                get_fieldtype_from_coltype(coldef[:type],
-                                          coldef[:elttype_if_array]
+                                          coldef[:elttype_if_array],
+                                          custom_types
                                           ;tablename = table, colname = colname)
+
+            # Check if it is an enum or a vector of enum
+            if coldef[:type] == "USER-DEFINED"
+                basic_field[:is_enum] = true
+            elseif is_vector_of_enum(coldef[:type],
+                                      coldef[:elttype_if_array],
+                                      custom_types)
+                basic_field[:is_vectorofenum] = true
+            end
 
             basic_field[:field_type] = field_type
             push!(struct_basic_fields, basic_field)
@@ -362,6 +415,8 @@ function generate_object_model(
       onetomany_field[:is_manytoone] = false
       onetomany_field[:is_onetoone] = false
       onetomany_field[:is_onetomany] = true
+      onetomany_field[:is_enum] = false
+      onetomany_field[:is_vectorofenum] = false
       onetomany_type_name_w_module = manytoone_field[:field_type] # Public.Staff
 
       # Build a field_name using one of the following options:
@@ -496,6 +551,7 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
          f[:field_type]
       end
       str = "  $field_name::Union{Missing,$field_type}\n"
+
       _struct[:struct_content] *= str
    end
 
@@ -534,7 +590,7 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
    # ######################################################### #
    for _struct in structs
       str = ""
-      str *= "  ) = (\n"
+      str *= "  ) = begin\n"
       str *= "    x = new("
       _struct[:struct_content] *= str
    end
@@ -554,7 +610,7 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
    # Close 'new(missing, missing, ...)' of the second constructor #
    # ############################################################ #
    for _struct in structs
-      str = ");\n"
+      str = ")\n"
       _struct[:struct_content] *= str
    end
 
@@ -565,7 +621,7 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
 
       _struct = f[:struct]
 
-      str = "    x.$(f[:name]) = $(f[:name]);\n"
+      str = "    x.$(f[:name]) = $(f[:name])\n"
       _struct[:struct_content] *= str
    end
 
@@ -574,7 +630,7 @@ function generate_structs_from_object_model(object_model::Dict, outdir::String)
    # ######################################################## #
    for _struct in structs
       str = "    return x\n"
-      str *= "  )\n"
+      str *= "  end\n"
       _struct[:struct_content] *= str
    end
 
@@ -836,159 +892,4 @@ get_table_name() = \"$table\"
 
    return object_model
 
-end
-
-function generate_julia_struct_from_table(
-    dbconn::LibPQ.Connection,
-    schema_name::String,
-    table_name::String,
-    struct_name::String,
-    filename_for_struct::String,
-    filename_for_orm_module::String,
-   ;ignored_columns::Vector{String} = Vector{String}(),
-    camelcase_is_default::Bool = true,
-    exceptions_to_default::Vector{String} = Vector{String}())
-
-    @info "generate_julia_struct_from_table"
-
-    # Retrieve the columns names and types
-
-    query_string = "SELECT column_name,
-                           data_type AS column_type,
-                           udt_name AS element_type
-                    from information_schema.columns
-                    WHERE table_schema = \$1 AND table_name = \$2"
-
-    cols = execute_plain_query(query_string,
-                               [schema_name,table_name],
-                               dbconn)
-
-    # For convenience, we make sure that 'colnames_to_camelcase' and
-    #   'colnames_left_as_it_is' are vectors
-    if camelcase_is_default
-        colnames_to_camelcase = cols[:,:column_name]
-        filter!(x -> !(x in exceptions_to_default),colnames_to_camelcase)
-    else
-        colnames_to_camelcase = exceptions_to_default
-    end
-
-    mapping_arr = []
-    attrs_declarations = []
-    attrsnames = []
-    colsnames = []
-
-    # Declare the indentation unit
-    indent = "    "
-
-    for c in eachrow(cols)
-
-       colname = c.column_name
-       coltype = c.column_type
-       elttype = c.element_type
-       attrname = colname
-
-       # Skip ignored columns
-       if (colname in ignored_columns)
-          continue
-       end
-
-       if (colname in colnames_to_camelcase)
-          attrname = StringCases.camelize(colname)
-       end
-
-       attrtype = Union{Missing,String}
-       push!(colsnames,colname)
-       push!(attrsnames,attrname)
-       push!(mapping_arr,":$attrname => \"$colname\"")
-
-       # Deduce the corresponding Julia type
-       if (coltype == "character"
-          || coltype == "character varying"
-          || coltype == "text"
-          || coltype == "uuid"
-          || coltype == "USER-DEFINED")
-          attrtype = "String"
-       elseif (coltype == "boolean")
-          attrtype = "Bool"
-       elseif (coltype == "smallint")
-          attrtype = "Int16"
-       elseif (coltype == "integer" || coltype == "interval")
-          attrtype = "Int32"
-       elseif (coltype == "bigint")
-          attrtype = "Int64"
-       elseif (coltype == "numeric")
-          attrtype = "Float64"
-       elseif (coltype == "date")
-          attrtype = "Date"
-       elseif (coltype == "time without time zone")
-          attrtype = "Time"
-       elseif (coltype == "timestamp without time zone")
-          attrtype = "DateTime"
-       elseif (coltype == "timestamp with time zone")
-          attrtype = "ZonedDateTime"
-       elseif (coltype == "ARRAY")
-          if (elttype == "_text" || elttype == "_varchar")
-             attrtype = "Vector{String}"
-          else
-             error("Unknown array type[$elttype] for column[$colname]")
-          end
-       else
-          error("Unknown type[$coltype] for column[$colname]")
-       end
-
-       # Declare the attribute
-       push!(attrs_declarations,
-            "$attrname::Union{Missing,$attrtype}")
-
-    end # ENDOF for-loop on columns
-
-    #
-    # Prepare the constructors
-    #
-    constructor1 = "$struct_name(args::NamedTuple) = $struct_name(;args...)"
-    constructor2 = "$struct_name(;\n"
-    constructor2 *= join(string.(repeat(indent,2),attrsnames," = missing,\n"))
-    constructor2 *= " ) = (\n"
-
-    constructor2 *= "$(repeat(indent,3))x = new(" * join(repeat(["missing"],length(attrsnames)),", ") * ");\n"
-    constructor2 *=
-      join(string.(repeat(indent,3),"x.",attrsnames," = " , attrsnames),"; \n") * ";"
-
-    constructor2 *= "\n$(repeat(indent,3))return x"
-    constructor2 *= "\n$(repeat(indent,3)))"
-
-    #
-    # Prepare the mapping
-    #
-    mapping = ""
-
-    #
-    # Build the strings
-    #
-    struct_content = ("
-abstract type I$struct_name <: IEntity end \n
-mutable struct $struct_name <: I$struct_name
-
-  $(join(attrs_declarations,"\n  "))
-
-  $constructor1
-  $constructor2
-
-end
-")
-
-   orm_content = ("
-data_type = $struct_name
-PostgresORM.get_orm(x::$struct_name) = return($(struct_name)ORM)
-gettablename() = \"$schema_name.$table_name\"
-const columns_selection_and_mapping =
-  Dict(
-     $(join(mapping_arr,",\n$(repeat(indent,1))"))
-  )
-")
-
-    write(filename_for_struct,struct_content)
-    write(filename_for_orm_module,orm_content)
-
-    cols
 end

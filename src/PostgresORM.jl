@@ -39,7 +39,7 @@ module PostgresORM
   #   include("./web-api-definition.jl")
   # end
 
-  greet() = return ("Hello World!")
+  greet() = return ("Hello World from PostgresORM!")
 
   module PostgresORMUtil
       using ..PostgresORM
@@ -48,7 +48,8 @@ module PostgresORM
       export opendbconn, closedbconn, dict2namedtuple, namedtuple2dict, tovector,
             get_nonmissing_typeof_uniontype, dataframe2vector_of_namedtuples,
             dataframerow2namedtuple, getdictvalues, getpropertiesvalues,
-            setpropertiesvalues!, remove_spaces_and_split, diff_dict, string2enum,
+            setpropertiesvalues!, remove_spaces_and_split, diff_dict,
+            string2enum, string2vector_of_enums,
             int2enum, enum2int, dictstringkeys2symbol, dictnothingvalues2missing,
             getproperties_asdict, string2zoneddatetime
 
@@ -108,8 +109,9 @@ module PostgresORM
     using ..CRUDType
     using ..PostgresORMUtil, ..SchemaInfo
     # using .ModificationORM # no need (because ModificationORM is a children module ?)
-    using Tables, DataFrames, Query, LibPQ, Dates, UUIDs, TickTock
+    using Tables, DataFrames, Query, LibPQ, Dates, TimeZones, UUIDs, TickTock
     include("./Tool/Tool.jl")
+    include("./Tool/Tool-typescript.jl")
 
   end # module Tool
 

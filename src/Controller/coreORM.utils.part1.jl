@@ -72,6 +72,7 @@ function util_get_entity_props_for_db_actions(entity::IEntity,
                                              columns_selection_and_mapping,
                                              entity_type)
     props = util_replace_enums_by_id_if_needed(props, orm_module, dbconn)
+    props = util_replace_empty_vector_of_enums_by_missing(props)
     props = util_replace_dict_types(props, orm_module, dbconn)
 
 end
@@ -114,6 +115,7 @@ function util_get_entity_props_for_comparison(entity::IEntity,
                                              columns_selection_and_mapping,
                                              entity_type)
     props = util_replace_enums_by_id_if_needed(props,orm_module,dbconn)
+    props = util_replace_empty_vector_of_enums_by_missing(props)
     props = util_replace_dict_types(props,orm_module,dbconn)
 
     return(props)
@@ -421,6 +423,8 @@ function util_dict2entity(props_dict::Dict{Symbol,T},
           # @info props_dict[fsymbol]
           props_dict[fsymbol] =
             PostgresORMUtil.postgresql_string_array_2_string_vector(props_dict[fsymbol])
+      elseif ftype <: Vector{T} where T <: Base.Enums.Enum
+          props_dict[fsymbol] = string2vector_of_enums(ftype,props_dict[fsymbol])
       elseif ftype <: Enum
 
           if ismissing(props_dict[fsymbol])
@@ -895,6 +899,23 @@ function util_replace_enums_by_id_if_needed(props::Dict,
           end
 
       end
+    end
+    return props
+end
+
+"""
+    util_replace_empty_vector_of_enums_by_missing(props::Dict)
+
+Replace empty vector of an enum by missing. This allows developers to avoid testing both for
+nullity and emptiness of the property
+"""
+function util_replace_empty_vector_of_enums_by_missing(props::Dict)
+    for (prop_symbol, prop_val) in props
+        if typeof(prop_val) <: Vector{T} where T <: Base.Enums.Enum
+            if isempty(prop_val)
+                props[prop_symbol] = missing
+            end
+        end
     end
     return props
 end
