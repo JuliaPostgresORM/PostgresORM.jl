@@ -133,6 +133,10 @@ function get_fieldtype_from_coltype(coltype::String,
    elseif (coltype == "ARRAY")
       if (elttype == "_text" || elttype == "_varchar")
         attrtype = "Vector{String}"
+      elseif (elttype == "_numeric")
+            attrtype = "Vector{Float64}"
+      elseif (elttype == "_int4")
+            attrtype = "Vector{Int64}"
       elseif is_vector_of_enum(coltype,elttype,customtypes_names)
         elttype = elttype[2:end] # remove the leading underscore
         attrtype = "Vector{$(build_enum_name_w_module(elttype))}"
