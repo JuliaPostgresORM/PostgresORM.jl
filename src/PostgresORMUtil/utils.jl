@@ -158,6 +158,16 @@ function string2vector_of_enums(vectorOfEnumsTypes::Type{Vector{T}},
 
 end
 
+function vector_of_strings2vector_of_enums(
+    vectorOfEnumsTypes::Type{Vector{T}} where T <: Base.Enums.Enum,
+    vectorOfInts::Union{Vector{String},Vector{Union{String,Missing}}})
+
+    enumType = eltype(vectorOfEnumsTypes)
+
+    return string2enum.(enumType,vectorOfInts)
+
+end
+
 function vector_of_integers2vector_of_enums(
     vectorOfEnumsTypes::Type{Vector{T}} where T <: Base.Enums.Enum,
     vectorOfInts::Union{Vector{W},Vector{Union{W,Missing}}} where W <: Integer)

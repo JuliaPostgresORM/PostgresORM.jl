@@ -431,6 +431,8 @@ function util_dict2entity(props_dict::Dict{Symbol,T},
 
           if isa(props_dict[fsymbol],Union{Vector{T},Vector{Union{T,Missing}}} where T <: Integer)
               props_dict[fsymbol] = vector_of_integers2vector_of_enums(ftype,props_dict[fsymbol])
+          elseif isa(props_dict[fsymbol],Union{Vector{String},Vector{Union{String,Missing}}})
+                props_dict[fsymbol] = vector_of_strings2vector_of_enums(ftype,props_dict[fsymbol])
           else
               props_dict[fsymbol] = string2vector_of_enums(ftype,props_dict[fsymbol])
           end
