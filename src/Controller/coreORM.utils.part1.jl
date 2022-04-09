@@ -368,6 +368,7 @@ function util_dict2entity(props_dict::Dict{Symbol,T},
       # If attribute is already of the right type do nothing
       if isa(props_dict[fsymbol],ftype)
           continue
+
       # Override some properties
       elseif ftype <: UUID
           if ismissing(props_dict[fsymbol])
@@ -407,6 +408,7 @@ function util_dict2entity(props_dict::Dict{Symbol,T},
             match(r"^([0-9]{4}-[0-9]{2}-[0-9]{2})",
                   props_dict[fsymbol])
           props_dict[fsymbol] = Date(date_match.match)
+
       elseif ftype <: Time
           if (ismissing(props_dict[fsymbol]))
               continue
@@ -416,6 +418,7 @@ function util_dict2entity(props_dict::Dict{Symbol,T},
             match(r"([0-9]{2}:[0-9]{2}:[0-9]{2})",
                   props_dict[fsymbol])
           props_dict[fsymbol] = Time(time_match.match)
+
       elseif ftype <: Vector{String}
           if (ismissing(props_dict[fsymbol]))
               continue
@@ -423,8 +426,15 @@ function util_dict2entity(props_dict::Dict{Symbol,T},
           # @info props_dict[fsymbol]
           props_dict[fsymbol] =
             PostgresORMUtil.postgresql_string_array_2_string_vector(props_dict[fsymbol])
+
       elseif ftype <: Vector{T} where T <: Base.Enums.Enum
-          props_dict[fsymbol] = string2vector_of_enums(ftype,props_dict[fsymbol])
+
+          if isa(props_dict[fsymbol],Union{Vector{T},Vector{Union{T,Missing}}} where T <: Integer)
+              props_dict[fsymbol] = vector_of_integers2vector_of_enums(ftype,props_dict[fsymbol])
+          else
+              props_dict[fsymbol] = string2vector_of_enums(ftype,props_dict[fsymbol])
+          end
+
       elseif ftype <: Enum
 
           if ismissing(props_dict[fsymbol])

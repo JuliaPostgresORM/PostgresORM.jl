@@ -158,6 +158,16 @@ function string2vector_of_enums(vectorOfEnumsTypes::Type{Vector{T}},
 
 end
 
+function vector_of_integers2vector_of_enums(
+    vectorOfEnumsTypes::Type{Vector{T}} where T <: Base.Enums.Enum,
+    vectorOfInts::Union{Vector{W},Vector{Union{W,Missing}}} where W <: Integer)
+
+    enumType = eltype(vectorOfEnumsTypes)
+
+    return int2enum.(enumType,vectorOfInts)
+
+end
+
 function string2zoneddatetime(str)
     # eg. "2019-09-03T11:00:00.000Z"
     date_match_GMT =

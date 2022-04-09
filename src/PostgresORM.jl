@@ -49,7 +49,7 @@ module PostgresORM
             get_nonmissing_typeof_uniontype, dataframe2vector_of_namedtuples,
             dataframerow2namedtuple, getdictvalues, getpropertiesvalues,
             setpropertiesvalues!, remove_spaces_and_split, diff_dict,
-            string2enum, string2vector_of_enums,
+            string2enum, string2vector_of_enums, vector_of_integers2vector_of_enums,
             int2enum, enum2int, dictstringkeys2symbol, dictnothingvalues2missing,
             getproperties_asdict, string2zoneddatetime
 
