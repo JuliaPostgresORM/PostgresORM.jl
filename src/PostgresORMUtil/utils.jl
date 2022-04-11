@@ -179,10 +179,10 @@ function vector_of_integers2vector_of_enums(
 end
 
 function string2zoneddatetime(str)
-    # eg. "2019-09-03T11:00:00.000Z"
+
+    # Attempt 1: eg. "2019-09-03T11:00:00.000Z"
     date_match_GMT =
         match(r"^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z)$", str)
-
     if !isnothing(date_match_GMT)
         # "2019-07-24T00:41:49.732Z" becomes "2019-07-24T00:41:49.732"
         date_match_remove_endingZ =
@@ -192,9 +192,27 @@ function string2zoneddatetime(str)
             ZonedDateTime(DateTime(date_match_remove_endingZ.match),
                           TimeZone("UTC"))
         return utc_zdt
-    else
-        return nothing
     end
+
+    # Attempt 2: eg. "2022-04-09T18:06:26+02:00"
+    date_match_with_tz1 =
+        match(r"^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\+[0-9]{2}:[0-9]{2})$", str)
+    if !isnothing(date_match_with_tz1)
+        zdt =
+            ZonedDateTime(date_match_with_tz1.match,"yyyy-mm-ddTHH:MM:SSzzzz")
+        return zdt
+    end
+
+    # Attempt 3: eg. "2022-04-08T02:30:22.668+02:00"
+    date_match_with_tz1 =
+        match(r"^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}\+[0-9]{2}:[0-9]{2})$", str)
+    if !isnothing(date_match_with_tz1)
+        zdt =
+            ZonedDateTime(date_match_with_tz1.match,"yyyy-mm-ddTHH:MM:SS.ssszzzz")
+        return zdt
+    end
+
+    return nothing
 
 end
 

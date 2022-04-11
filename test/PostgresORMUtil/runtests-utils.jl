@@ -92,7 +92,9 @@ end
 end
 
 @testset "Test utils.jl - function `string2zoneddatetime`" begin
-    PostgresORMUtil.string2zoneddatetime("2019-09-03T11:00:00.000Z")
+    PostgresORMUtil.string2zoneddatetime("2019-09-03T11:00:00.000Z") |> string |> ZonedDateTime
+    PostgresORMUtil.string2zoneddatetime("2022-04-09T18:06:26+01:30")
+    PostgresORMUtil.string2zoneddatetime("2022-04-08T02:30:22.668+03:00")
 end
 
 @testset "Test utils.jl - function `postgresql_string_array_2_string_vector`" begin
