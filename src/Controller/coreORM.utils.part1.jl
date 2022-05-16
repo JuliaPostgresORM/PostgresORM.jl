@@ -429,7 +429,10 @@ function util_dict2entity(props_dict::Dict{Symbol,T},
 
       elseif ftype <: Vector{T} where T <: Base.Enums.Enum
 
-          if isa(props_dict[fsymbol],Union{Vector{T},Vector{Union{T,Missing}}} where T <: Integer)
+          # Treat the case where we can an empty vector, no matter the type (eg. Any[])
+          if props_dict[fsymbol] isa Vector && isempty(props_dict[fsymbol])
+              props_dict[fsymbol] = Vector{T}()
+          elseif isa(props_dict[fsymbol],Union{Vector{T},Vector{Union{T,Missing}}} where T <: Integer)
               props_dict[fsymbol] = vector_of_integers2vector_of_enums(ftype,props_dict[fsymbol])
           elseif isa(props_dict[fsymbol],Union{Vector{String},Vector{Union{String,Missing}}})
                 props_dict[fsymbol] = vector_of_strings2vector_of_enums(ftype,props_dict[fsymbol])
