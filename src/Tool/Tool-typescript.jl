@@ -175,6 +175,7 @@ end
         elseif f[:is_onetomany]
             elt_type = get_typescript_elt_type(f)
             str *= indent * "if (_json['$field_name'] != null) {\n"
+            str *= indent * "    " * "this.$field_name = [];\n"
             str *= indent * "    " * "for (let e of _json['$field_name']) {\n"
             str *= indent * "        " * "this.$field_name.push(new $elt_type(e));\n"
             str *= indent * "    " * "}\n"
@@ -186,6 +187,7 @@ end
         elseif f[:is_vectorofenum]
             elt_type = get_typescript_elt_type(f)
             str *= indent * "if (_json['$field_name'] != null) {\n"
+            str *= indent * "    " * "this.$field_name = [];\n"
             str *= indent * "    " * "for (let e of _json['$field_name']) {\n"
             str *= indent * "        " * "this.$field_name.push(Number($elt_type[e]));\n"
             str *= indent * "    " * "}\n"
