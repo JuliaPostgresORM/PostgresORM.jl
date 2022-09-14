@@ -192,6 +192,10 @@ end
             str *= indent * "        " * "this.$field_name.push(Number($elt_type[e]));\n"
             str *= indent * "    " * "}\n"
             str *= indent * "}\n"
+        elseif get_typescript_type(f) == "Date"
+            str *= indent * "if (_json['$field_name'] != null) {\n"
+            str *= indent * "    " * "this.$field_name = new Date(_json['$field_name']);\n"
+            str *= indent * "}\n"
         else
             str *= indent * "this.$field_name = _json['$field_name'];\n"
         end
