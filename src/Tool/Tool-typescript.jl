@@ -202,7 +202,11 @@ end
             str *= indent * "}\n"
         elseif get_typescript_type(f) == "Date"
             str *= indent * "if (_json['$field_name'] != null) {\n"
-            str *= indent * "    " * "this.$field_name = new Date(_json['$field_name']);\n"
+            str *= indent * "    " * "if (_json['refTime'] instanceof Date) {"
+            str *= indent * "    " * "    " * "this.$field_name = _json['$field_name'];\n"
+            str *= indent * "    " * "} else {"
+            str *= indent * "    " * "    " * "this.$field_name = new Date(_json['$field_name']);\n"
+            str *= indent * "    " * "}"
             str *= indent * "}\n"
         else
             str *= indent * "this.$field_name = _json['$field_name'];\n"
