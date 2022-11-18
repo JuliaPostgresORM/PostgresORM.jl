@@ -49,13 +49,15 @@ function retrieve_entity(filter_object::Union{IEntity,Missing},
         end
     end
 
-    # prepared_query = LibPQ.prepare(dbconn,
-    #                                query_string)
-
     # Prepare the query aruments
     # NOTE: It would be more elegant to convert the keys in an array of String
     #         but I didn't find a way to do it
     query_args = collect(values(props))
+
+    # Return empty array if there is no filter
+    if isempty(query_args)
+        return data_type[]
+    end
 
     result = execute_query_and_handle_result(query_string,
                                              data_type,
