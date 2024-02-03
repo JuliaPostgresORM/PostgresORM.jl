@@ -590,11 +590,21 @@ function util_get_property_real_type(datatype::DataType, propname::Symbol)
     # Check if there is a type override for this property, if not we
     #   use the property type
 
-    if (isdefined(orm_module,:types_override)
-        && propname in collect(keys(orm_module.types_override)))
-        ptype = PostgresORM.get_orm(dummy_object).types_override[propname]
+    if (
+        isdefined(orm_module,:get_types_override)
+        && propname in collect(keys(orm_module.get_types_override()))
+    )
+        ptype = orm_module.get_types_override()[propname]
+
+    elseif (
+        isdefined(orm_module,:types_override)
+        && propname in collect(keys(orm_module.types_override))
+    )
+        ptype = orm_module.types_override[propname]
     end
+
     return ptype
+
 end
 
 
@@ -1057,21 +1067,6 @@ end
 
 function util_get_onetomany_counterparts(o::IEntity)
     return util_get_onetomany_counterparts(PostgresORM.get_orm(o))
-end
-
-function util_get_types_override(orm_module::Module)
-    if isdefined(orm_module,:get_types_override)
-        return orm_module.get_types_override()
-    # This is support for the legacy way of declaring the id properties
-    elseif isdefined(orm_module,:types_override)
-        return orm_module.types_override
-    else
-        error("orm_module[$orm_module] is missing 'get_types_override'")
-    end
-end
-
-function util_get_types_override(o::IEntity)
-    return util_get_types_override(PostgresORM.get_orm(o))
 end
 
 function util_get_track_changes(orm_module::Module)
