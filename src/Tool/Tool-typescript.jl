@@ -4,6 +4,8 @@ function generate_typescript_code(dbconn::LibPQ.Connection,
                                   ;lang_code = "eng",
                                   module_name_for_all_schemas::Union{String,Missing} = "Model")
 
+    @info "BEGIN Typescript code generation"
+
     object_model = generate_object_model(
         dbconn,
         lang_code,
@@ -15,6 +17,8 @@ function generate_typescript_code(dbconn::LibPQ.Connection,
     generate_typescript_classes_from_object_model(object_model,
                                                   outdir,
                                                   relative_path_to_enum_dir)
+
+    @info "ENDOF Typescript code generation"
 
 end
 

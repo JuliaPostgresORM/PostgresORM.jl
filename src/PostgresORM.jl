@@ -70,7 +70,7 @@ module PostgresORM
 
   # Provides functions to get information about the database structures
   module SchemaInfo
-      include("./SchemaInfo/SchemaInfo-def.jl") # This is only the definition of the
+      include("./SchemaInfo/_def.jl") # This is only the definition of the
                                                  #   module. See below for the actual
                                                  #   implementation.
   end #module SchemaInfo
@@ -116,7 +116,7 @@ module PostgresORM
   end # module Tool
 
   # Implementation of the SchemaInfo module
-  include("./SchemaInfo/SchemaInfo-imp.jl")
+  include("./SchemaInfo/_imp.jl")
 
 
   include("./exposed-functions-from-submodules.jl")
