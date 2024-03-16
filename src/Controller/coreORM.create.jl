@@ -95,6 +95,9 @@ function create_entity!(new_object::IEntity,
     column_names = util_getcolumns(properties_names, columns_selection_and_mapping)
     properties_values = collect(values(props))
 
+    # Dedup column names and values in case some properties are sharing the same columns
+    PostgresORMUtil.dedup_colnames_colvalues!(column_names, properties_values)
+
     # Loop over the properties of the object and
     #   build the appropriate list of columns
     if length(props) > 0
@@ -104,7 +107,7 @@ function create_entity!(new_object::IEntity,
     end
 
     # Add the prepared statement indexes
-    query_indexes = string.(collect(1:length(properties_names)))
+    query_indexes = string.(collect(1:length(column_names)))
     query_indexes = string.("\$",query_indexes)
     query_string *= (" VALUES ("
                      * join(query_indexes,",")
