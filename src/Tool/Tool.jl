@@ -255,7 +255,7 @@ function generate_object_model(
                 manytoone_field[:referenced_cols] = fkdef[:referenced_cols]
                 manytoone_field[:cols] = fkdef[:referencing_cols]
                 manytoone_field[:is_id] = false
-                if occursin("onetoone",fkname)
+                if occursin("onetoone",fkname) || occursin("one_to_one",fkname)
                     manytoone_field[:is_onetoone] = true
                     manytoone_field[:is_manytoone] = false
                 else
