@@ -8,3 +8,4 @@ function analyse_db_schema end
 function check_if_table_is_partition_of_another_table end
 function check_if_table_or_partition_exists end
 function get_custom_types end
+function get_table_comment end
