@@ -380,3 +380,59 @@ function remove_spaces_and_split(str::String)
     str = replace(str, " " => "")
     return split(str,',')
 end
+
+"""
+    dedup_colnames_colvalues!(column_names::Vector{String}, column_values::Vector)
+
+Inplace dedup column names and values by giving priority to non missing elements
+
+Eg.
+Applying function to the following arguments:
+column_names = ["exam_log_id", "in_date", "in_date", "out_time", "api_url", "in_time", "user_id"]
+column_values = ["215c81e9-e002-402e-8482-1382a65ef1e4", "2024-03-11", missing, "2024-03-11T08:27:12.363+01:00", "exam/save-values", "2024-03-11T08:27:09.363+01:00", "b7845f35-0169-488d-b8ce-111f0f07d695"]
+
+will result in a dropping the third element of both vectors
+
+"""
+function dedup_colnames_colvalues!(
+    column_names::Vector{String},
+    column_values::Vector
+)
+
+    # Function to check if a value is considered "missing" in your context
+    is_missing(value) = value === missing  # Replace 'nothing' with your definition of a missing value
+
+    # Create a dictionary to track the first occurrence and its index
+    seen = Dict{String, Int}()
+
+    # Iterate backwards to prefer the first non-missing value when deduplicating
+    for i in length(column_names):-1:1
+        name, value = column_names[i], column_values[i]
+        if !is_missing(value)
+            if haskey(seen, name)
+                # Update with non-missing value if found later
+                column_values[seen[name]] = value
+            else
+                seen[name] = i  # Track the first non-missing occurrence
+            end
+        elseif !haskey(seen, name)
+            # Even if it's missing, we need to track the first occurrence
+            seen[name] = i
+        end
+    end
+
+    # Filter the original arrays based on the indices stored in 'seen'
+    # This will also sort them based on their original order preserved by iteration order in 'seen'
+    filter_indices = sort(collect(values(seen)))
+
+    # Assign new values to the beginning of the original arrays
+    column_names[1:length(filter_indices)] = [column_names[i] for i in filter_indices]
+    column_values[1:length(filter_indices)] = [column_values[i] for i in filter_indices]
+
+    # Resize the original arrays to remove the extra elements
+    resize!(column_names, length(filter_indices))
+    resize!(column_values, length(filter_indices))
+
+    nothing
+
+end
