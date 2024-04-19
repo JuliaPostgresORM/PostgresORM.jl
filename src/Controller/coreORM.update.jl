@@ -310,10 +310,17 @@ function update_entity!(updated_object::IEntity,
                                      dbconn)
 
     if length(previous_state) == 0
-        throw(DomainError("Unable to retrieve an object of type[$data_type] "
-                        * "with id[$(getproperty(updated_object,
-                                     orm_module.id_property))] from the database."
-                        *" Remind that only existing existing objects can be updated."))
+
+        id_for_display = util_get_ids_cols_names_and_values(updated_object, dbconn) |>
+            dict -> join(["$k: $v" for (k, v) in dict], ", ")
+
+        throw(
+            DomainError(
+                "Unable to retrieve an object of type[$data_type] "
+                *"with id[$id_for_display] "
+                *"from the database. Remind that only existing objects can be updated."
+            )
+        )
     end
 
     previous_state = previous_state[1]
