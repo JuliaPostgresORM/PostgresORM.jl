@@ -35,7 +35,11 @@ function build_enum_name_w_module(str::String)
 end
 
 function build_enum_value(str::String)
-    StringCases.snakecase(str)
+    # StringCases.snakecase returns a lowercase string, we need to uppercase the result if
+    # the original string was in uppercase.
+    # NOTE: Base.Unicode.isuppercase returns false on non-letter characters
+    StringCases.snakecase(str) |>
+        n -> all(c -> !isletter(c) || Base.Unicode.isuppercase(c),str) ? uppercase(n) : n
 end
 
 function build_struct_name(str::String)
@@ -95,11 +99,17 @@ function is_vector_of_enum(coltype::String,
                                         customtypes_names)
 end
 
-function get_fieldtype_from_coltype(coltype::String,
-                                                elttype::String,
-                                                customtypes::Dict,
-                                                ;tablename::String = "",
-                                                 colname::String = "")
+function get_fieldtype_from_coltype(
+    coltype::String,
+    elttype::String,
+    customtypes::Dict,
+    ;tablename::String = "",
+    colname::String = ""
+)
+
+    if (colname == "duration")
+        @info "duration coltype[$coltype]"
+    end
 
     attrtype = missing
     customtypes_names = keys(customtypes) |> collect |> n -> string.(n)
@@ -113,7 +123,7 @@ function get_fieldtype_from_coltype(coltype::String,
         attrtype = "Bool"
     elseif (coltype == "smallint")
         attrtype = "Int16"
-    elseif (coltype == "integer" || coltype == "interval")
+    elseif (coltype == "integer")
         attrtype = "Int32"
     elseif (coltype == "bigint")
         attrtype = "Int64"
@@ -129,6 +139,8 @@ function get_fieldtype_from_coltype(coltype::String,
         attrtype = "DateTime"
     elseif (coltype == "timestamp with time zone")
         attrtype = "ZonedDateTime"
+    elseif coltype == "interval"
+        attrtype = "Dates.CompoundPeriod"
     elseif (coltype == "ARRAY")
         if (elttype == "_text" || elttype == "_varchar")
           attrtype = "Vector{String}"
