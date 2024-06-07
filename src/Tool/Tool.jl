@@ -79,10 +79,12 @@ function build_field_name(str_arr::Vector{String},
      return field_name
 end
 
-function is_vector_of_enum(coltype::String,
-                                     elttype::String,
-                                     customtypes_names::Vector{String})
-     if (coltype == "ARRAY")
+function is_vector_of_enum(
+    coltype::String,
+    elttype::String,
+    customtypes_names::Vector{<:AbstractString}
+)
+    if (coltype == "ARRAY")
           if elttype[2:end] in customtypes_names # remove the leading underscore
                 return true
           end
@@ -106,10 +108,6 @@ function get_fieldtype_from_coltype(
     ;tablename::String = "",
     colname::String = ""
 )
-
-    if (colname == "duration")
-        @info "duration coltype[$coltype]"
-    end
 
     attrtype = missing
     customtypes_names = keys(customtypes) |> collect |> n -> string.(n)
