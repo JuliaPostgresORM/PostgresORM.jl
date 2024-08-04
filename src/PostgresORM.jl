@@ -1,7 +1,7 @@
 module PostgresORM
 
   # Exposed types of PostgresORM
-  export IEntity, IEntity, Modification
+  export IEntity, Modification
 
   # Exposed functions of PostgresORM
   export get_orm, create_entity!,create_in_bulk_using_copy,retrieve_entity,
@@ -10,7 +10,7 @@ module PostgresORM
          execute_query_and_handle_result
 
 
-  using Dates, UUIDs
+  using Dates, UUIDs, Parameters
 
   function get_orm end
 
@@ -21,6 +21,7 @@ module PostgresORM
   #         by the calling libraries
   include("./model/abstract_types.jl")
   include("./model/Modification.jl")
+  include("./model/FKInfo.jl")
 
   module ModificationORM
     using ..PostgresORM
@@ -75,15 +76,17 @@ module PostgresORM
                                                  #   implementation.
   end #module SchemaInfo
 
-
+  module Cache
+    include("./Cache/_def.jl")
+  end
 
   module Controller
 
     using ..CRUDType, ..PostgresORM
-    using ..PostgresORMUtil
+    using ..PostgresORMUtil, ..Cache
     # using .ModificationORM # no need (because ModificationORM is a children module ?)
     using Tables, DataFrames, Query, LibPQ, Dates, UUIDs, TickTock, TimeZones,
-          JSON
+          JSON, Serialization
     using IterTools:imap
 
     include("./Controller/coreORM.utils.part1.jl")
@@ -118,6 +121,7 @@ module PostgresORM
   # Implementation of the SchemaInfo module
   include("./SchemaInfo/_imp.jl")
 
+  include("Cache/_imp.jl")
 
   include("./exposed-functions-from-submodules.jl")
 

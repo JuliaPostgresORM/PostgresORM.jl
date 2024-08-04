@@ -120,8 +120,8 @@ function create_entity!(new_object::IEntity,
 # @info "query is prepared"
 # laptimer()
 
-    # @info query_string
-    # @info properties_values
+    @info query_string
+    @info properties_values
 
     query_result = execute(prepared_query,
                            properties_values
@@ -149,7 +149,9 @@ function create_entity!(new_object::IEntity,
  # @info "dataframe is transformed to vector of named tuple"
  # laptimer()
 
-     result =
+    Serialization.serialize("/home/orfead/CODE/ORFEAD.jl/tmp/result.jls", result)
+
+    result =
         util_convert_namedtuple_to_object.(result,data_type,
                                            true, # retrieve_complex_props
                                            dbconn)

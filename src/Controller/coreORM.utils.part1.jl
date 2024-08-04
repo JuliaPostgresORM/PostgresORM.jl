@@ -3,6 +3,10 @@
 function util_get_column_type end
 function util_is_column_numeric end
 
+function util_get_pkcol_from_fkcol(table, schema, col, dbconn)
+    # TODO: Implement this function
+end
+
 # TODO: There's probably a more efficient way than this to retrieve the db name
 #         from the LibPQ.Connection
 function util_getdbname(dbconn::LibPQ.Connection)
@@ -271,6 +275,8 @@ function util_id2entity(ptype::DataType,
         return missing
     end
 
+    @info "Convert a $ptype using id_values[$id_values]"
+
     complex_prop = ptype()
     id_properties = util_get_ids_props_names(complex_prop)
 
@@ -328,6 +334,8 @@ function util_dict2entity(props_dict::Dict{Symbol,T},
                           building_from_database_result::Bool,
                           retrieve_complex_props::Bool,
                           dbconn::Union{LibPQ.Connection,Missing}) where T <: Any
+
+  println("props_dict", props_dict)
 
   # Clone the Dict to make sure that it is of type Dict{Symbol, Any} so that we
   #   can for example replace a value by another one of different type
@@ -627,9 +635,11 @@ function util_convert_namedtuple_to_object(props::NamedTuple, object_type::DataT
     #  eg. {film_id, film_release_year, actor_id} becomes {film{id,release_year}, actor{id}}
     # @info keys(props_dict)
     # @info length(props_dict[:possible_values_as_str_arr])
-    props_dict =
-        util_convert_flatdictfromdb_to_structuredrenameddict(props_dict,
-                                                             object_type)
+    props_dict = util_convert_flatdictfromdb_to_structuredrenameddict(
+        props_dict,
+        object_type,
+        dbconn
+    )
 
     # @info keys(props_dict)
     # @info length(props_dict[:possibleValuesAsStrArr])
@@ -642,8 +652,83 @@ function util_convert_namedtuple_to_object(props::NamedTuple, object_type::DataT
 
 end
 
-function util_convert_flatdictfromdb_to_structuredrenameddict(flatdict::Dict,
-                                                              object_type::DataType)
+function util_convert_flatdictfromdb_to_structuredrenameddict(
+    flatdict::Dict{Symbol,Any},
+    object_type::DataType,
+    dbconn::Union{LibPQ.Connection,Missing}
+)
+
+    sample_object = object_type()
+    orm_module = get_orm(sample_object)
+    columns_selection_and_mapping = util_get_columns_selection_and_mapping(orm_module)
+    columns_mapping_to_referenced_tables  = util_get_columns_mapping_to_referenced_tables(orm_module)
+
+    result = Dict()
+
+    # Loop over the properties of the struct and try to get the corresponding
+    #   values in the flat dict
+    for (propname,prop_colnames) in util_get_columns_selection_and_mapping(orm_module)
+        # Get the proptype in order to know if we are dealing with a complex
+        #   property or not
+        proptype = util_get_property_real_type(object_type, propname)
+
+        # if the property is a complex prop we build a dict get the required value from the
+        # flatdict and then transform it to an entity
+        if proptype <: IEntity
+
+            # Get the columns that are needed for this property
+            propcols = tovector(columns_selection_and_mapping[propname])
+            propcols_in_referenced_table = tovector(columns_mapping_to_referenced_tables[propname])
+
+            # Try to find these columns in the flatdict to create a sub-flatdict
+            sub_flatdict = Dict{Symbol, Any}()
+            all_cols_found = true
+            missing_cols = []
+            for (col,col_in_referenced_table) in zip(propcols, propcols_in_referenced_table)
+                col_symbol = Symbol(col)
+                col_in_referenced_table_symbol = Symbol(col_in_referenced_table)
+                if haskey(flatdict, col_symbol) && !ismissing(flatdict[col_symbol])
+                    sub_flatdict[col_in_referenced_table_symbol] = flatdict[col_symbol]
+                else
+                    if col == "organization_id"
+                        @warn "Missing organization_id in flatdict for property $propname" flatdict
+                    end
+                    all_cols_found = false
+                    push!(missing_cols,col_symbol)
+                    all_cols_found = false
+                    break
+                end
+            end
+            @info "$propname all_cols_found[$all_cols_found] missing_cols[$missing_cols]"
+
+            # If all values for building the entity are found, build it and add to result list
+            if all_cols_found
+                result[propname] = util_convert_flatdictfromdb_to_structuredrenameddict(
+                    sub_flatdict,
+                    proptype,
+                    dbconn
+                )
+            end
+
+        else
+            colname = Symbol(tovector(prop_colnames)[1])
+            if haskey(flatdict,colname)
+                result[propname] = flatdict[colname]
+            end
+        end # ENDOF `if proptype <: IEntity`
+
+
+    end
+
+    return result
+
+end
+
+function util_convert_flatdictfromdb_to_structuredrenameddict_DEPRECATED(
+    flatdict::Dict,
+    object_type::DataType,
+    dbconn::Union{LibPQ.Connection,Missing}
+)
     sample_object = object_type()
     orm_module = get_orm(sample_object)
 
@@ -680,6 +765,9 @@ function util_convert_flatdictfromdb_to_structuredrenameddict(flatdict::Dict,
 
             # If there is a composed foreign key we need to correctly map the
             #   column values to the column ids in the target table
+            if propname == :document
+                @info "prop_colnames" prop_colnames
+            end
             if isa(prop_colnames, Array) && length(prop_colnames) > 1
 
                 # Loop over the FK columns and use the PKs in the same order
@@ -688,9 +776,15 @@ function util_convert_flatdictfromdb_to_structuredrenameddict(flatdict::Dict,
                 counter = 0
                 for colname in prop_colnames
 
+                    if propname == :document
+                        @info "colname" colname
+                    end
+
                     # Get the value from the flatdict (if exists)
                     if haskey(flatdict, Symbol(colname))
                         colvalue = flatdict[Symbol(colname)]
+                    # If one of the components is missing we break here because we are not
+                    # interested in just a portion of the id
                     else
                         break
                     end
@@ -792,6 +886,7 @@ function util_replace_complex_types_by_id(props::Dict, mapping::Dict, data_type:
 
     mapping = deepcopy(mapping)
     orm_module = get_orm(data_type())
+    cols_mapping_for_referenced_tables = util_get_columns_mapping_to_referenced_tables(orm_module)
 
     # NOTE: We loop on the result of a filter that does nothing because if not
     #        the pairs that are added dynamically in the loop will be looped
@@ -803,6 +898,21 @@ function util_replace_complex_types_by_id(props::Dict, mapping::Dict, data_type:
 
       # NOTE: We test on the fieldtype because the property value can be missing
       if _fieldtype <: IEntity
+
+          # Create the mapping between the ids in the referencing table and the referenced table
+          # NOTE: We're counting on the columns to be in the same order
+          referenced_col_to_referencing_col = Dict{String, String}()
+          for (referenced_col, referencing_col) in
+                zip(
+                    cols_mapping_for_referenced_tables[prop_symbol] |> n -> n isa Vector ? n : [n],
+                    mapping[prop_symbol] |> n -> n isa Vector ? n : [n]
+                )
+            referenced_col_to_referencing_col[referenced_col] = referencing_col
+          end
+
+          if prop_symbol == :document
+            @info "referenced_col_to_referencing_col" referenced_col_to_referencing_col
+          end
 
           # @info "Replace[$prop_symbol] with ids"
 
@@ -820,6 +930,10 @@ function util_replace_complex_types_by_id(props::Dict, mapping::Dict, data_type:
           # Whatever we get from the mapping we make it a vector
           idcols = tovector(mapping[prop_symbol])
 
+          if prop_symbol == :document
+            @info "idcols" idcols
+          end
+
           prop_val_as_dict =
               PostgresORMUtil.getproperties_asdict(
                 if ismissing(prop_val) dummy_propval else prop_val end,
@@ -829,12 +943,22 @@ function util_replace_complex_types_by_id(props::Dict, mapping::Dict, data_type:
           prop_val_ids_values =
               filter!(x -> first(x) in id_props_in_target_struct,
                       prop_val_as_dict)
-          prop_val_ids_values = util_replace_complex_types_by_id(
+
+        if prop_symbol == :document
+            @info "prop_val_ids_values BEFORE util_replace_complex_types_by_id" prop_val_ids_values
+        end
+
+           prop_val_ids_values::Dict = util_replace_complex_types_by_id(
               prop_val_ids_values,
               util_get_columns_selection_and_mapping(
                 if ismissing(prop_val) dummy_propval else prop_val end
                ),
               _fieldtype)
+
+        if prop_symbol == :document
+            @info "prop_val_ids_values AFTER util_replace_complex_types_by_id" prop_val_ids_values
+        end
+
 
           if length(idcols) != length(prop_val_ids_values)
               error_msg = ""
@@ -846,44 +970,26 @@ function util_replace_complex_types_by_id(props::Dict, mapping::Dict, data_type:
               error(error_msg)
           end
 
+          # Get the ids in the target table
           ids_props_names = collect(keys(prop_val_ids_values))
           ids_cols_names = util_getcolumns(ids_props_names,
                                            prop_columns_selection_and_mapping)
-          ids_props_values = collect(values(prop_val_ids_values))
+          ids_cols_values = collect(values(prop_val_ids_values))
 
-          # Make sure the values are ordered in the same order as the one given
-          #  by the mapping of the target entity's ORM
-          idvalues = []
+          for (col_name_in_referenced_table, col_value) in zip(ids_cols_names, ids_cols_values)
 
-          prop_colnames_in_target_type = util_get_ids_cols_names(prop_orm_module)
-          for pcol in prop_colnames_in_target_type
-              for (n,c,v) in zip(ids_props_names,ids_cols_names,ids_props_values)
-                  if (pcol == c)
-                      push!(idvalues,v)
-                  end
-              end
+            # Get the name of the column that corresponds to the column in the target table
+            col_name = referenced_col_to_referencing_col[col_name_in_referenced_table]
+
+            if ismissing(col_value) && haskey(props,Symbol(col_name)) && !ismissing(props[Symbol(col_name)])
+              continue
+            else
+              props[Symbol(col_name)] = col_value
+            end
+
+
           end
 
-          for (k,v) in zip(idcols, idvalues)
-             # This prevents a property using the same primary columns to
-             #   overwrite a non missing value
-             if ismissing(v) && haskey(props,Symbol(k)) && !ismissing(props[Symbol(k)])
-               continue
-             else
-               props[Symbol(k)] = v
-             end
-          end
-
-          # for (n,c,v,cbis) in zip(ids_props_names,ids_cols_names,ids_props_values,idcols)
-          #     @info "$_fieldtype -> $n, $c, $v"
-          #     props[Symbol(cbis)] = v
-          # end
-
-          # counter = 0
-          # for (k,v) in prop_val_ids_values
-          #     id_column_name = idcols[counter+=1] # the name as used by the FK
-          #     props[Symbol(id_column_name)] = v
-          # end
 
           # Remove the previous reference that has been replaced
           delete!(props,prop_symbol)
@@ -1052,6 +1158,21 @@ end
 
 function util_get_columns_selection_and_mapping(o::IEntity)
     return util_get_columns_selection_and_mapping(PostgresORM.get_orm(o))
+end
+
+function util_get_columns_mapping_to_referenced_tables(orm_module::Module)
+    if isdefined(orm_module,:get_columns_mapping_to_referenced_tables)
+        return orm_module.get_columns_mapping_to_referenced_tables()
+    # This is support for the legacy way of declaring the id properties
+    elseif isdefined(orm_module,:columns_selection_and_mapping)
+        return orm_module.columns_selection_and_mapping
+    else
+        error("orm_module[$orm_module] is missing 'get_columns_mapping_to_referenced_tables'")
+    end
+end
+
+function util_get_columns_mapping_to_referenced_tables(o::IEntity)
+    return util_get_columns_mapping_to_referenced_tables(PostgresORM.get_orm(o))
 end
 
 function util_get_onetomany_counterparts(orm_module::Module)

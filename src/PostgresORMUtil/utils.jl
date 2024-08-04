@@ -237,8 +237,10 @@ function tovector(x;elementstype = missing)
         result = collect(x)
     elseif isa(x,Number) || isa(x,String) || isa(x,Bool) || isa(x,Symbol)
         result = [x]
+    elseif isa(x,Dict)
+        result = values(x) |> collect
     else
-        throw(ArgumentError("Unsupported type[$(typeof(x))]"))
+        throw(ArgumentError("Unsupported type[$(typeof(x))] for $x"))
     end
 
     # Convert vector
