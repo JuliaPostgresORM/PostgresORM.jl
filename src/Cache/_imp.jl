@@ -152,11 +152,6 @@ function Cache.generate_fk2pk_mapping_cache(dbconn::LibPQ.Connection)
 
     for fkinfo in fkinfos
 
-
-        if fkinfo.referencing_table == "variable_value"
-            @info fkinfo.referencing_col
-        end
-
         # Check that entry for referencing shema exists
         if !haskey(cache[db_key][:fkcol2pkcol], fkinfo.referencing_schema)
             cache[db_key][:fkcol2pkcol][fkinfo.referencing_schema] = Dict{
@@ -200,7 +195,7 @@ function Cache.generate_fk2pk_mapping_cache(dbconn::LibPQ.Connection)
 end
 
 function Cache.__init__()
-    @info("########### init Cache module")
+    @info("Init PostgresORM.Cache module")
     # Initialize the cache when the module is loaded
     Cache._cache_ref[] = Dict{Any, Any}()
 end

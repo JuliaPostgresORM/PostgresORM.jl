@@ -275,8 +275,6 @@ function util_id2entity(ptype::DataType,
         return missing
     end
 
-    @info "Convert a $ptype using id_values[$id_values]"
-
     complex_prop = ptype()
     id_properties = util_get_ids_props_names(complex_prop)
 
@@ -334,8 +332,6 @@ function util_dict2entity(props_dict::Dict{Symbol,T},
                           building_from_database_result::Bool,
                           retrieve_complex_props::Bool,
                           dbconn::Union{LibPQ.Connection,Missing}) where T <: Any
-
-  println("props_dict", props_dict)
 
   # Clone the Dict to make sure that it is of type Dict{Symbol, Any} so that we
   #   can for example replace a value by another one of different type
@@ -699,7 +695,6 @@ function util_convert_flatdictfromdb_to_structuredrenameddict(
                     break
                 end
             end
-            @info "$propname all_cols_found[$all_cols_found] missing_cols[$missing_cols]"
 
             # If all values for building the entity are found, build it and add to result list
             if all_cols_found
@@ -721,105 +716,6 @@ function util_convert_flatdictfromdb_to_structuredrenameddict(
     end
 
     return result
-
-end
-
-function util_convert_flatdictfromdb_to_structuredrenameddict_DEPRECATED(
-    flatdict::Dict,
-    object_type::DataType,
-    dbconn::Union{LibPQ.Connection,Missing}
-)
-    sample_object = object_type()
-    orm_module = get_orm(sample_object)
-
-    result = Dict()
-
-    # Loop over the properties of the struct and try to get the corresponding
-    #   values in the flat dict
-    for (propname,prop_colnames) in util_get_columns_selection_and_mapping(orm_module)
-
-        # Get the proptype in order to know if we are dealing with a complex
-        #   property or not
-        proptype = util_get_property_real_type(object_type, propname)
-
-        # if the property is a complex prop we build a dict with the IDs of
-        #    the complex object as described in the ORM of the complex property
-        if proptype <: IEntity
-
-            result[propname] = Dict()
-
-            # Retrieve the type of the complex object
-            complexprop_instance = proptype()
-            complexprop_idprops = util_get_ids_props_names(complexprop_instance)
-            complexprop_orm = get_orm(complexprop_instance)
-
-            # Check that the number of columns for the FK is consistent with
-            #   the number of properties used as PK in the targeted object
-            if length(complexprop_idprops) != length(tovector(prop_colnames))
-                error("There is an inconsistency in the ORMs definition,
-                type[$object_type] has property[$propname] of type[$proptype]
-                which is mapped with $(length(tovector(prop_colnames))) columns
-                but type[$proptype] has only $(length(complexprop_idprops)) IDs
-                properties")
-            end
-
-            # If there is a composed foreign key we need to correctly map the
-            #   column values to the column ids in the target table
-            if propname == :document
-                @info "prop_colnames" prop_colnames
-            end
-            if isa(prop_colnames, Array) && length(prop_colnames) > 1
-
-                # Loop over the FK columns and use the PKs in the same order
-                # TODO: Handle the case where the order of the FKs and PKs columns
-                #         is not the same
-                counter = 0
-                for colname in prop_colnames
-
-                    if propname == :document
-                        @info "colname" colname
-                    end
-
-                    # Get the value from the flatdict (if exists)
-                    if haskey(flatdict, Symbol(colname))
-                        colvalue = flatdict[Symbol(colname)]
-                    # If one of the components is missing we break here because we are not
-                    # interested in just a portion of the id
-                    else
-                        break
-                    end
-
-                    complexprop_idprop = complexprop_idprops[counter+=1]
-                    result[propname][complexprop_idprop] = colvalue
-
-
-                end
-
-            # If it is a non componsed foreign key then we can simply use the
-            #   id property of the targeted object
-            else
-                complexprop_idprop = complexprop_idprops[1]
-                complexprop_colname = Symbol(tovector(prop_colnames)[1])
-                if haskey(flatdict, complexprop_colname)
-                    result[propname][complexprop_idprop] = flatdict[complexprop_colname]
-                end
-
-            end # ENFOF `if isa(prop_colnames, Array) && length(prop_colnames) > 1`
-
-
-
-        # If the property is simple then we just look for the value in the dict
-        else
-            colname = Symbol(tovector(prop_colnames)[1])
-            if haskey(flatdict,colname)
-                result[propname] = flatdict[colname]
-            end
-        end # ENDOF `if proptype <: IEntity`
-
-    end # ENDOF `for (propname,prop_colnames) in util_get_columns_selection_and_mapping(orm_module)`
-
-    return result
-
 
 end
 
@@ -910,12 +806,6 @@ function util_replace_complex_types_by_id(props::Dict, mapping::Dict, data_type:
             referenced_col_to_referencing_col[referenced_col] = referencing_col
           end
 
-          if prop_symbol == :document
-            @info "referenced_col_to_referencing_col" referenced_col_to_referencing_col
-          end
-
-          # @info "Replace[$prop_symbol] with ids"
-
           dummy_propval = _fieldtype() # Used in case the prop val is missing
 
           prop_orm_module = get_orm(_fieldtype())
@@ -925,14 +815,8 @@ function util_replace_complex_types_by_id(props::Dict, mapping::Dict, data_type:
           # Retrieve the names of the ID properties in the target struct
           id_props_in_target_struct = util_get_ids_props_names(_fieldtype())
 
-          # @info "id_props_in_target_struct[$id_props_in_target_struct] ($_fieldtype)"
-
           # Whatever we get from the mapping we make it a vector
           idcols = tovector(mapping[prop_symbol])
-
-          if prop_symbol == :document
-            @info "idcols" idcols
-          end
 
           prop_val_as_dict =
               PostgresORMUtil.getproperties_asdict(
@@ -944,21 +828,12 @@ function util_replace_complex_types_by_id(props::Dict, mapping::Dict, data_type:
               filter!(x -> first(x) in id_props_in_target_struct,
                       prop_val_as_dict)
 
-        if prop_symbol == :document
-            @info "prop_val_ids_values BEFORE util_replace_complex_types_by_id" prop_val_ids_values
-        end
-
            prop_val_ids_values::Dict = util_replace_complex_types_by_id(
               prop_val_ids_values,
               util_get_columns_selection_and_mapping(
                 if ismissing(prop_val) dummy_propval else prop_val end
                ),
               _fieldtype)
-
-        if prop_symbol == :document
-            @info "prop_val_ids_values AFTER util_replace_complex_types_by_id" prop_val_ids_values
-        end
-
 
           if length(idcols) != length(prop_val_ids_values)
               error_msg = ""

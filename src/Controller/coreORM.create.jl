@@ -120,8 +120,8 @@ function create_entity!(new_object::IEntity,
 # @info "query is prepared"
 # laptimer()
 
-    @info query_string
-    @info properties_values
+    # @info query_string
+    # @info properties_values
 
     query_result = execute(prepared_query,
                            properties_values
