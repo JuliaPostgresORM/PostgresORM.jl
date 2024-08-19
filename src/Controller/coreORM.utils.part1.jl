@@ -686,9 +686,6 @@ function util_convert_flatdictfromdb_to_structuredrenameddict(
                 if haskey(flatdict, col_symbol) && !ismissing(flatdict[col_symbol])
                     sub_flatdict[col_in_referenced_table_symbol] = flatdict[col_symbol]
                 else
-                    if col == "organization_id"
-                        @warn "Missing organization_id in flatdict for property $propname" flatdict
-                    end
                     all_cols_found = false
                     push!(missing_cols,col_symbol)
                     all_cols_found = false
@@ -1039,8 +1036,8 @@ function util_get_columns_mapping_to_referenced_tables(orm_module::Module)
     if isdefined(orm_module,:get_columns_mapping_to_referenced_tables)
         return orm_module.get_columns_mapping_to_referenced_tables()
     # This is support for the legacy way of declaring the id properties
-    elseif isdefined(orm_module,:columns_selection_and_mapping)
-        return orm_module.columns_selection_and_mapping
+    elseif isdefined(orm_module,:columns_mapping_to_referenced_tables)
+        return orm_module.columns_mapping_to_referenced_tables
     else
         error("orm_module[$orm_module] is missing 'get_columns_mapping_to_referenced_tables'")
     end
