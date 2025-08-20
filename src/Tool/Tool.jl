@@ -257,6 +257,9 @@ function generate_object_model(
             struct_id_fields = []
             struct_basic_fields = []
 
+            # We want to exclude the combinations of PK columns that exactly match a FK
+            pk_cols_exactly_matching_a_fk = String[]
+
             # Loop over the FKs of the table to add the complex field
             for (fkname,fkdef) in tabledef[:fks]
                 manytoone_field = Dict()
@@ -328,11 +331,13 @@ function generate_object_model(
 
                 push!(struct_manytoone_fields, manytoone_field)
 
-                # Check whether all the referencing columns are in the PK columns, if
-                #    yes also add the property to the id property of the struct
+                # Check whether all the referencing columns are in the PK columns, if yes:
+                #   1. add the property to the id property of the struct
+                #   2. add the column to the list of PK columns that we want to skip
                 if all(map(x -> x in tabledef[:pk],
                               manytoone_field[:cols]))
-                     manytoone_field[:is_id] = true
+                    manytoone_field[:is_id] = true
+                    push!(pk_cols_exactly_matching_a_fk, manytoone_field[:cols]...)
                 end
 
             end # for (fkname,fkdef) in tabledef[:fks]
@@ -344,13 +349,18 @@ function generate_object_model(
               push!(referencing_cols,v...)
             end
 
+
             # Loop over the PKs of the table, if the PK is found in a FKs, skip
             #    because we already added it when looping over the FKs
-            if tabledef[:pk] |> n -> map(x -> x ∈ referencing_cols, n) |> all
-                @info "PK of table[$table] is contained in a FK"
-            else
+            # if tabledef[:pk] |> n -> map(x -> x ∈ referencing_cols, n) |> all
+            #     @info "PK of table[$table] is contained in a FK"
+            # else
 
                 for pkcol in tabledef[:pk]
+
+                    if pkcol in pk_cols_exactly_matching_a_fk
+                        continue
+                    end
 
                     id_field = Dict()
                     id_field[:struct] = _struct
@@ -380,7 +390,7 @@ function generate_object_model(
 
                 end # ENDOF for pk in tabledef[:pk]
 
-            end # ENDOF if tabledef[:pk] |> n -> map(x -> x ∈ referencing_cols, n) |> all
+            # end # ENDOF if tabledef[:pk] |> n -> map(x -> x ∈ referencing_cols, n) |> all
 
 
 
@@ -825,7 +835,7 @@ get_table_name() = \"$table\"
 
     # write(filename_for_orm_module,orm_content)
 
-    end #ENDOF `for _struct in structs`
+    end
 
 
     # ############################# #
@@ -839,13 +849,13 @@ get_table_name() = \"$table\"
         str *= "get_columns_selection_and_mapping() = return columns_selection_and_mapping"
         str *= "\nconst columns_selection_and_mapping = Dict(\n"
         _struct[:orm_content] *= str
-    end #ENDOF `for _struct in structs`
+    end
 
 
     mapping_arr = []
     for f in fields
 
-        # Skip the onetomany fields because they do not have any correson column
+        # Skip the onetomany fields because they do not have any corresponding column
         if f[:is_onetomany] continue end
 
         field_name = f[:name]
@@ -856,17 +866,53 @@ get_table_name() = \"$table\"
                         else
                             "\"$(f[:cols][1])\""
                         end
-        # colnames = "r4r4W"
+
         str = "$(repeat(indent,1)) :$(field_name) => $colnames, \n"
         f[:struct][:orm_content] *= str
 
-    end # ENDOF `for id_field in object_model[:id_fields]`
+    end
 
     # Close the Dict for 'columns_selection_and_mapping'
     for _struct in object_model[:structs]
         _struct[:orm_content] *= ")\n\n"
     end
 
+    # ###################################################### #
+    # Columns selection and mapping for the referenced table #
+    # ###################################################### #
+    # Declare the function and open the Dict
+    for _struct in object_model[:structs]
+        str = "\n\n"
+        str *= "# Declare the mapping between the properties and the referenced tables columns\n"
+        str *= "get_columns_mapping_to_referenced_tables() = return columns_mapping_to_referenced_tables"
+        str *= "\nconst columns_mapping_to_referenced_tables = Dict(\n"
+        _struct[:orm_content] *= str
+    end
+
+
+    mapping_arr = []
+    for f in fields
+
+        # Skip the onetomany fields because they do not have any corresponding column
+        if f[:is_onetomany] || !haskey(f,:referenced_cols) continue end
+
+        field_name = f[:name]
+
+        colnames =  if length(f[:referenced_cols]) > 1
+                            "[" * join( string.("\"", f[:referenced_cols], "\""), ", ") * "]"
+                        else
+                            "\"$(f[:referenced_cols][1])\""
+                        end
+
+        str = "$(repeat(indent,1)) :$(field_name) => $colnames, \n"
+        f[:struct][:orm_content] *= str
+
+    end
+
+    # Close the Dict for 'columns_mapping_to_referenced_tables'
+    for _struct in object_model[:structs]
+        _struct[:orm_content] *= ")\n\n"
+    end
 
     # ############# #
     # ID properties #
