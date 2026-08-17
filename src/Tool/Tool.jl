@@ -158,6 +158,8 @@ function get_fieldtype_from_coltype(
         attrtype = missing
     elseif (coltype == "USER-DEFINED")
         attrtype = build_enum_name_w_module(elttype)
+    elseif (coltype == "jsonb")
+        attrtype = "Dict{String, Any}"
     else
         error("Unknown type[$coltype] for table[$tablename] column[$colname]")
     end
