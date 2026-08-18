@@ -3,7 +3,7 @@ function SchemaInfo.check_if_table_or_partition_exists(table::String,
                                                        dbconn::LibPQ.Connection)
     querystr = "SELECT EXISTS (
                    SELECT FROM information_schema.tables
-                   WHERE  table_name  = \$1
+                   WHERE  LOWER(table_name)  = LOWER(\$1)
                    AND    table_schema = \$2
                    );"
     queryres = execute_plain_query(querystr, [table, schema], dbconn)
