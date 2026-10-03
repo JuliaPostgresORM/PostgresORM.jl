@@ -110,11 +110,29 @@ end
     res = PostgresORMUtil.postgresql_string_array_2_string_vector(str)
     @test res == ["aa","bb","cc","dd"]
 
-    # This one fails
+    # Consecutive unquoted elements next to quoted ones
     str = "{\"bla bla\",bb,cc}"
     res = PostgresORMUtil.postgresql_string_array_2_string_vector(str)
     @test res == ["bla bla","bb","cc"]
 
+    str = "{Anthropologie,Autopsie,\"Examen externe\",\"Levée de corps\",Odontologie,Psychiatrique,Somatique}"
+    res = PostgresORMUtil.postgresql_string_array_2_string_vector(str)
+    @test res == ["Anthropologie","Autopsie","Examen externe","Levée de corps",
+                  "Odontologie","Psychiatrique","Somatique"]
+
+    # Escaped quotes and backslashes inside a quoted element
+    str = "{\"say \\\"hi\\\"\",\"back\\\\slash\",\"a,b\",\"{c}\"}"
+    res = PostgresORMUtil.postgresql_string_array_2_string_vector(str)
+    @test res == ["say \"hi\"","back\\slash","a,b","{c}"]
+
+    # Single element, empty array, NULL element
+    @test PostgresORMUtil.postgresql_string_array_2_string_vector("{aa}") == ["aa"]
+    @test PostgresORMUtil.postgresql_string_array_2_string_vector("{\"a b\"}") == ["a b"]
+    @test PostgresORMUtil.postgresql_string_array_2_string_vector("{}") == String[]
+    @test PostgresORMUtil.postgresql_string_array_2_string_vector("{aa,NULL,\"NULL\"}") == ["aa","NULL","NULL"]
+
+    @test_throws ArgumentError PostgresORMUtil.postgresql_string_array_2_string_vector("aa,bb")
+    @test_throws ArgumentError PostgresORMUtil.postgresql_string_array_2_string_vector("{\"unterminated}")
 end
 
 

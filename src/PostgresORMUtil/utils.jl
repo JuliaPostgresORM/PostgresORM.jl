@@ -259,35 +259,54 @@ end
 
 
 """
-    postgresql_string_array_2_string_vector(str::String)
+    postgresql_string_array_2_string_vector(str::AbstractString)
 
-Transform the following string "{"Deleted,. 3, Scenes a2e","Behind the Scenes",""}"
-(that's what we get from postrgesql) into a string vector fo size 3
+Parse the textual representation of a one-dimensional PostgreSQL array
+(what `array_out` produces, e.g. `{aa,"bla bla","a \\"quoted\\" one",""}`)
+into a `Vector{String}`.
+
+PostgreSQL only quotes an element when it needs to (whitespace, comma, braces,
+quotes, backslash, empty string or the literal `NULL`), so quoted and unquoted
+elements are freely mixed. Inside quotes, `"` and `\\` are escaped with a
+backslash.
+
+A SQL `NULL` element (unquoted `NULL`) is returned as the string `"NULL"`
+because the result type is `Vector{String}`. Multidimensional arrays are not
+supported.
 """
-function postgresql_string_array_2_string_vector(str::String)
+function postgresql_string_array_2_string_vector(str::AbstractString)
 
-    #TODO handle the case "{\"bla bla\",bb,cc}"
+    s = strip(str)
+    if !(startswith(s, "{") && endswith(s, "}"))
+        throw(ArgumentError("Not a PostgreSQL array literal: $(repr(str))"))
+    end
+    body = SubString(s, nextind(s, firstindex(s)), prevind(s, lastindex(s)))
+    isempty(body) && return String[]
 
-    if occursin("\"",str)
+    result = String[]
+    current = IOBuffer()
+    in_quotes = false
+    escaped = false
+    for c in body
+        if escaped
+            write(current, c)
+            escaped = false
+        elseif c == '\\'
+            escaped = true
+        elseif c == '"'
+            in_quotes = !in_quotes
+        elseif c == ',' && !in_quotes
+            push!(result, String(take!(current)))
+        else
+            write(current, c)
+        end
+    end
+    if in_quotes || escaped
+        throw(ArgumentError("Malformed PostgreSQL array literal: $(repr(str))"))
+    end
+    push!(result, String(take!(current)))
 
-        my_matches =
-            #              1            2          3          4           5
-            eachmatch(r"(?:\"([^\"]*)\"|,([^\"]*),|{([^\"]*),|{([^\"]*)}|,([^\"]*)})",
-            # Where 1: "Deleted,. 3, Scenes a2e" => Deleted,. 3, Scenes a2e
-            #       2: ,dwed, => dwed
-            #       3: {dwed, => dwed
-            #       4: {dwed} => dwed
-            #       5: ,dwed} => dwed
-                       str
-                      )
-        return map(m ->filter(x -> !isnothing(x), m.captures) |> n -> (string ∘ first)(n),
-            collect(my_matches))
-      else
-          return  str[2:length(str)-1] |>
-                   n -> split(n,",") |>
-                   n -> string.(n)
-      end
-
+    return result
 
 end
 
